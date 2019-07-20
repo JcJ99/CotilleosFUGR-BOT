@@ -1,0 +1,4 @@
+requests==2.22.0
+flask==0.10.1
+requests_oauthlib==1.2.0
+gunicorn==19.9.0
