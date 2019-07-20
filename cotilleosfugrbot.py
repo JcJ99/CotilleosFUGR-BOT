@@ -209,7 +209,7 @@ if __name__ == "__main__":
 	onheroku = os.environ.get("ONHEROKU", 0)
 	if onheroku:
 		port = int(os.environ.get('PORT', 33507))
-		reg = regthread(8)
+		reg = regthread(10)
 	else:
 		from pyngrok import ngrok
 		port = int(os.environ.get('PORT', 5000))
