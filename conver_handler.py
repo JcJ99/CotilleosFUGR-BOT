@@ -2,6 +2,7 @@ import api_handler as api
 import datetime
 import threading
 from time import sleep
+from config import MAX_TWEETS_PER_HOUR
 
 class conversation:
 	def __init__(self, user_id):
@@ -192,7 +193,7 @@ class conversation:
 		length = len(self.tweettext)
 		spamming = False
 		try:
-			delta = datetime.datetime.now() - self.tweets[len(self.tweets)-7][1]
+			delta = datetime.datetime.now() - self.tweets[len(self.tweets)-MAX_TWEETS_PER_HOUR-2][1]
 			if delta < datetime.timedelta(hours=1):
 				spamming = True
 		except IndexError:
@@ -228,9 +229,9 @@ class conversation:
 	def addquote(self):
 		if self.response.text().split()[0] == "ERROR:":
 			responsetext = self.response.text().split("\n\n")[1]
-			self.response.chtext("ERROR: TE HE DICHO QUE NO PULSES EL BOTÓN. Para citar un tweet necesito el link, si pulsas el botón el link se sustituye por el nombre del botón. Para enviar el link del tweet citado usa el botón de enviar que usarías para mandarle un dm a tu crush\n\n" + responsetext)
+			self.response.chtext("ERROR: TE HE DICHO QUE NO PULSES EL BOTÓN. Para citar un tweet necesito el link, si pulsas el botón, el link se sustituye por el nombre del botón. Para enviar el link del tweet citado usa el botón de enviar que usarías para mandarle un dm a tu crush\n\n" + responsetext)
 		else:
-			self.response.chtext("ERROR: TE HE DICHO QUE NO PULSES EL BOTÓN. Para citar un tweet necesito el link, si pulsas el botón el link se sustituye por el nombre del botón. Para enviar el link del tweet citado usa el botón de enviar que usarías para mandarle un dm a tu crush\n\n" + self.response.text())
+			self.response.chtext("ERROR: TE HE DICHO QUE NO PULSES EL BOTÓN. Para citar un tweet necesito el link, si pulsas el botón, el link se sustituye por el nombre del botón. Para enviar el link del tweet citado usa el botón de enviar que usarías para mandarle un dm a tu crush\n\n" + self.response.text())
 
 	def addcancelbutton(self):
 		self.response.addquickreply("Cancelar",

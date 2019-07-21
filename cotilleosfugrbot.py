@@ -39,12 +39,12 @@ class regthread(threading.Thread):
 		global appid
 		sleep(self.time)
 		try:
-			r = requests.post("https://api.twitter.com/1.1/account_activity/all/" + twitterenvname + "/webhooks.json", auth=msgauth, params={"url": appurl + "/webhook"})
+			r = requests.post("https://api.twitter.com/1.1/account_activity/all/" + TWITTER_ENV_NAME + "/webhooks.json", auth=msgauth, params={"url": APP_URL + "/webhook"})
 			r.raise_for_status()
 			appid = r.json()["id"]
 			print("Aplicación registrada correctamente en Twitter con id: " + appid, file=sys.stderr)
 			subcribeforaccount()
-			print("Recibiendo eventos del entorno: " + twitterenvname)
+			print("Recibiendo eventos del entorno: " + TWITTER_ENV_NAME)
 			print("Ctrl+C Para salir")
 			self.registered = True
 		except requests.HTTPError:
@@ -61,11 +61,11 @@ class regthread(threading.Thread):
 			print("Ctrl+C Para salir")
 
 def webhookunregister(appid):
-	r = requests.delete("https://api.twitter.com/1.1/account_activity/all/" + twitterenvname + "/webhooks/" + appid + ".json", auth=msgauth)
+	r = requests.delete("https://api.twitter.com/1.1/account_activity/all/" + TWITTER_ENV_NAME + "/webhooks/" + appid + ".json", auth=msgauth)
 	r.raise_for_status()
 
 def subcribeforaccount():
-	r = requests.post("https://api.twitter.com/1.1/account_activity/all/" + twitterenvname + "/subscriptions.json", auth=msgauth)
+	r = requests.post("https://api.twitter.com/1.1/account_activity/all/" + TWITTER_ENV_NAME + "/subscriptions.json", auth=msgauth)
 	r.raise_for_status()
 
 def challenge(crc_token):
@@ -213,11 +213,11 @@ if __name__ == "__main__":
 	else:
 		from pyngrok import ngrok
 		port = int(os.environ.get('PORT', 5000))
-		appurl = ngrok.connect(port=port)
-		appurl = "https://" + appurl.split("//")[1]
+		APP_URL = ngrok.connect(port=port)
+		APP_URL = "https://" + APP_URL.split("//")[1]
 		print("Registro de eventos: http://localhost:4040")
-		reg = regthread(1)
-	print("Servidor abierto con url: " +  appurl)
+		reg = regthread()
+	print("Servidor abierto con url: " +  APP_URL)
 	try:
 		reg.start()
 		app.run(host="0.0.0.0",port=port)
@@ -230,4 +230,4 @@ if __name__ == "__main__":
 		if reg.registered:
 			webhookunregister(appid)
 		if not onheroku:
-			ngrok.disconnect(appurl)
+			ngrok.disconnect(APP_URL)

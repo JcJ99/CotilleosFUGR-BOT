@@ -29,13 +29,15 @@ sudo pip install -r requirements.txt
 
 2. Editar el archivo config.py
 
-**Si la aplicación se aloja en Heroku** Es necesario introducir la variable appurl. El valor de esta debe ser la url en la que trabajará la aplicación. Si se trabaja en un PC esta va a ser ignorada
+**Si la aplicación se aloja en Heroku** Es necesario introducir la variable APP_URL. El valor de esta debe ser la url en la que trabajará la aplicación. Si se trabaja en un PC esta va a ser ignorada
 
 ```
-appurl = "https://xxxxx.herokuapp.com"
+APP_URL = "https://xxxxx.herokuapp.com"
 ```
 
-La variable **twitterenvname** es el nombre del entorno de la aplicación registrada en Twitter Developers. https://developer.twitter.com/en/docs/basics/developer-portal/guides/dev-environments.html
+La variable **TWITTER_ENV_NAME** es el nombre del entorno de la aplicación registrada en Twitter Developers. https://developer.twitter.com/en/docs/basics/developer-portal/guides/dev-environments.html
+
+Puede cambiar el número máximo de tweets que un usuario puede enviar en una hora ajustando la variable **MAX_TWEETS_PER_HOUR**
 
 3. Introducir keys de autenticación de la api de twitter
 

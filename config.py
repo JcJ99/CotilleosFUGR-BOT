@@ -1,2 +1,3 @@
-appurl = "https://cotilleosfugrbot.herokuapp.com"
-twitterenvname = "chatbot"
+APP_URL = ""
+TWITTER_ENV_NAME = ""
+MAX_TWEETS_PER_HOUR = 5
