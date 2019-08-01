@@ -244,3 +244,5 @@ if __name__ == "__main__":
 			webhookunregister(appid)
 		if not onheroku:
 			ngrok.disconnect(APP_URL)
+		else:
+			waker.event.set()
