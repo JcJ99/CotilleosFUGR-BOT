@@ -60,6 +60,17 @@ class regthread(threading.Thread):
 				print("Ya hay demasiadas aplicaciones vinculadas a este entorno de Twitter, para eliminarlas todas ejecute python cleanwebhooks.py")
 			print("Ctrl+C Para salir")
 
+class wakerthread(threading.Thread):
+	def __init__(self, timermin=10):
+		threading.Thread.__init__(self)
+		self.event = threading.Event()
+		self.timermin = timermin
+	def run(self):
+		self.event.wait(60*self.timermin)
+		while not self.event.is_set():
+			r = requests.put("https://api.twitter.com/1.1/account_activity/all/" + TWITTER_ENV_NAME + "/webhooks/" + appid + ".json", auth=msgauth)
+			self.event.wait(60*self.timermin)
+
 def webhookunregister(appid):
 	r = requests.delete("https://api.twitter.com/1.1/account_activity/all/" + TWITTER_ENV_NAME + "/webhooks/" + appid + ".json", auth=msgauth)
 	r.raise_for_status()
@@ -210,6 +221,8 @@ if __name__ == "__main__":
 	if onheroku:
 		port = int(os.environ.get('PORT', 33507))
 		reg = regthread(10)
+		waker = wakerthread()
+		waker.start()
 	else:
 		from pyngrok import ngrok
 		port = int(os.environ.get('PORT', 5000))
