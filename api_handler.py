@@ -282,7 +282,9 @@ class tweet:
 			"status": text,
 			"media_ids": None,
 			"attachment_url": None,
-			"entities": None
+			"entities": None,
+			"in_reply_to_status_id": None,
+			"auto_populate_reply_metadata": False
 		}
 		return cls(data)
 
@@ -338,11 +340,27 @@ class tweet:
 		else:
 			self.data["media_ids"] = None
 
+	def numattachments(self):
+		if self.data["media_ids"] == None:
+			return 0
+		else:
+			try:
+				return len(self.data["media_ids"])
+			except TypeError:
+				return 1
+
 	def quote(self, link):
 		self.data["attachment_url"] = link
 
+	def getquote(self):
+		return self.data["attachment_url"]
+
 	def rmquote(self):
 		self.data["attachment_url"] = None
+
+	def inreplyto(self, t_id):
+		self.data["in_reply_to_status_id"] = t_id
+		self.data["auto_populate_reply_metadata"] = True
 
 #Func for obtaining messages
 def getmsg(num):
