@@ -16,6 +16,7 @@ import logging
 import signal
 from config import *
 from welcomemsg import welcomemsgtext
+from cleanwebhooks import cleanwelcomemsg
 
 #Remove flask output
 log = logging.getLogger('werkzeug')
@@ -249,3 +250,4 @@ if __name__ == "__main__":
 			ngrok.disconnect(APP_URL)
 		else:
 			waker.event.set()
+		cleanwelcomemsg()
