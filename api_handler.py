@@ -146,6 +146,20 @@ class attachment:
 class msg:
 	def __init__(self, data):
 		self.data = {"event": data}
+		self.welcomemessageid = None
+
+	def __del__(self):
+		if self.welcomemessageid:
+			data = {
+				"id": self.ruleid
+			}
+			r = requests.delete("https://api.twitter.com/1.1/direct_messages/welcome_messages/rules/destroy.json", auth=msgauth, params=data)
+			r.raise_for_status()
+			data = {
+				"id": self.welcomemessageid
+			}
+			r = requests.delete("https://api.twitter.com/1.1/direct_messages/welcome_messages/destroy.json", auth=msgauth, params=data)
+			r.raise_for_status()
 
 	@classmethod
 	def create(cls, r_id, text):
@@ -271,6 +285,25 @@ class msg:
 				del self.data["event"]["message_create"]["message_data"]["quick_reply"]["options"][index]
 			except KeyError:
 				raise NoAttachmentException("No existe la respuesta rápida " + str(index))
+
+	def setaswelcomemsg(self, name=None):
+		data = {
+			"welcome_message": {
+				"name": name,
+				"message_data": self.data["event"]["message_create"]["message_data"]
+			}
+		}
+		r = requests.post("https://api.twitter.com/1.1/direct_messages/welcome_messages/new.json", auth=msgauth, json=data)
+		r.raise_for_status()
+		self.welcomemessageid = r.json()["welcome_message"]["id"]
+		data = {
+			"welcome_message_rule": {
+				"welcome_message_id": self.welcomemessageid
+			}
+		}
+		r = requests.post("https://api.twitter.com/1.1/direct_messages/welcome_messages/rules/new.json", auth=msgauth, json=data)
+		r.raise_for_status()
+		self.ruleid = r.json()["welcome_message_rule"]["id"]
 
 class tweet:
 	def __init__(self, data):

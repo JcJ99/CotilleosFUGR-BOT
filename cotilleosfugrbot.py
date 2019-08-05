@@ -15,6 +15,7 @@ from json import dumps
 import logging
 import signal
 from config import *
+from welcomemsg import welcomemsgtext
 
 #Remove flask output
 log = logging.getLogger('werkzeug')
@@ -24,6 +25,7 @@ appid = ""
 
 app = Flask(__name__)
 conversations = []
+welcomemsg = api.msg.create(None, welcomemsgtext)
 
 class SIGTERM(BaseException):
 	pass
@@ -216,6 +218,7 @@ def respond():
 		return "OK"
 
 if __name__ == "__main__":
+	welcomemsg.setaswelcomemsg()
 	signal.signal(signal.SIGTERM, signal_handler)
 	onheroku = os.environ.get("ONHEROKU", 0)
 	if onheroku:
