@@ -239,15 +239,17 @@ if __name__ == "__main__":
 		reg.start()
 		app.run(host="0.0.0.0",port=port)
 	except KeyboardInterrupt:
+		cleanwelcomemsg()
 		pass
 	except SIGTERM:
+		cleanwelcomemsg()
 		pass
 	finally:
 		print("\nSaliendo...")
+		cleanwelcomemsg()
 		if reg.registered:
 			webhookunregister(appid)
 		if not onheroku:
 			ngrok.disconnect(APP_URL)
 		else:
 			waker.event.set()
-		cleanwelcomemsg()
