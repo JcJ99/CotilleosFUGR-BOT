@@ -148,19 +148,6 @@ class msg:
 		self.data = {"event": data}
 		self.welcomemessageid = None
 
-	def __del__(self):
-		if self.welcomemessageid:
-			data = {
-				"id": self.ruleid
-			}
-			r = requests.delete("https://api.twitter.com/1.1/direct_messages/welcome_messages/rules/destroy.json", auth=msgauth, params=data)
-			r.raise_for_status()
-			data = {
-				"id": self.welcomemessageid
-			}
-			r = requests.delete("https://api.twitter.com/1.1/direct_messages/welcome_messages/destroy.json", auth=msgauth, params=data)
-			r.raise_for_status()
-
 	@classmethod
 	def create(cls, r_id, text):
 		data = {
