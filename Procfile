@@ -1,1 +1,1 @@
-web: python cotilleosfugrbot.py
+web: gunicorn cotilleosfugrbot:app

@@ -416,6 +416,20 @@ def getselfscreenname():
 	r.raise_for_status()
 	return r.json()["screen_name"]
 
+#Function for obtaining user id from screen name
+def getuserid(*screen_names):
+	par = {"screen_name": screen_names}
+	r = requests.get("https://api.twitter.com/1.1/users/lookup.json", auth=msgauth, params=par)
+	r.raise_for_status()
+	return [user["id_str"] for user in r.json()]
+
+#Function for obtaining user_name from id
+def getusername(*ids):
+	par = {"user_id": ids}
+	r = requests.get("https://api.twitter.com/1.1/users/lookup.json", auth=msgauth, params=par)
+	r.raise_for_status()
+	return [user["screen_name"] for user in r.json()]
+
 try:
 	selfid = getselfid()
 	selfscreenname = getselfscreenname()

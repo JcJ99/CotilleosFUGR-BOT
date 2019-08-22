@@ -2,13 +2,14 @@ import requests
 from api_handler import msgauth
 
 #Get all webhooks
-r = requests.get("https://api.twitter.com/1.1/account_activity/all/webhooks.json", auth=msgauth)
-r.raise_for_status()
-for env in r.json()["environments"]:
-	envname = env["environment_name"]
-	for wh in env["webhooks"]:
-		r2 = requests.delete("https://api.twitter.com/1.1/account_activity/all/"+envname+"/webhooks/"+wh["id"]+".json", auth=msgauth)
-		r.raise_for_status()
+def cleanwebhooks():
+	r = requests.get("https://api.twitter.com/1.1/account_activity/all/webhooks.json", auth=msgauth)
+	r.raise_for_status()
+	for env in r.json()["environments"]:
+		envname = env["environment_name"]
+		for wh in env["webhooks"]:
+			r2 = requests.delete("https://api.twitter.com/1.1/account_activity/all/"+envname+"/webhooks/"+wh["id"]+".json", auth=msgauth)
+			r.raise_for_status()
 
 def cleanwelcomemsg():
 	#Messages
@@ -37,3 +38,7 @@ def cleanwelcomemsg():
 		}
 		r = requests.delete("https://api.twitter.com/1.1/direct_messages/welcome_messages/rules/destroy.json", auth=msgauth, params=par)
 		r.raise_for_status()
+
+if __name__ == "__main__":
+	cleanwebhooks()
+	cleanwelcomemsg()

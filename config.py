@@ -1,7 +1,7 @@
 import os
 
 APP_URL = "" #No usar / al final de la url
-TWITTER_ENV_NAME = ""
+TWITTER_ENV_NAME = "chatbot"
 MAX_TWEETS_PER_HOUR = 5
 
 if "APP_URL" in os.environ:

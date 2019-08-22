@@ -17,10 +17,7 @@ import signal
 from config import *
 from welcomemsg import welcomemsgtext
 from cleanwebhooks import cleanwelcomemsg
-
-#Remove flask output
-log = logging.getLogger('werkzeug')
-log.setLevel(logging.ERROR)
+from pyngrok import ngrok
 
 appid = ""
 
@@ -31,9 +28,13 @@ welcomemsg = api.msg.create(None, welcomemsgtext)
 class SIGTERM(BaseException):
 	pass
 
-def signal_handler(signum, frame):
+def signal_handler_debug(signum, frame):
 	raise SIGTERM()
 
+def signal_handler_wsgi(signum, frame):
+	cleanwelcomemsg()
+	webhookunregister(appid)
+	waker.event.set()
 class regthread(threading.Thread):
 	def __init__(self, time=3):
 		threading.Thread.__init__(self)
@@ -45,26 +46,24 @@ class regthread(threading.Thread):
 			r = requests.post("https://api.twitter.com/1.1/account_activity/all/" + TWITTER_ENV_NAME + "/webhooks.json", auth=msgauth, params={"url": APP_URL + "/webhook"})
 			r.raise_for_status()
 			appid = r.json()["id"]
-			print("Aplicación registrada correctamente en Twitter con id: " + appid, file=sys.stderr)
+			app.logger.critical("Aplicación registrada correctamente en Twitter con id: " + appid)
 			subcribeforaccount()
-			print("Recibiendo eventos del entorno: " + TWITTER_ENV_NAME)
-			print("Ctrl+C Para salir")
+			app.logger.critical("Recibiendo eventos del entorno: " + TWITTER_ENV_NAME)
 			self.registered = True
 		except requests.HTTPError:
 			errormsg = r.json()["errors"][0]["message"]
 			errorcode = r.json()["errors"][0]["code"]
 			self.registered = False
-			print(f"TWITTER ERROR ({errorcode}): {errormsg}")
+			app.logger.error(f"TWITTER ERROR ({errorcode}): {errormsg}")
 			if errorcode == 34:
-				print("No se ha podido conectar con Twitter. Revise que ha introucido el nombre del entorno de la aplicación de Twitter en el archivo config.py")
+				app.logger.error("No se ha podido conectar con Twitter. Revise que ha introucido el nombre del entorno de la aplicación de Twitter en el archivo config.py")
 			elif errorcode == 215:
-				print("No se ha podido autenticar la cuenta de Twitter. Comprueba que el archivo Auths o las variables de entorno")
+				app.logger.error("No se ha podido autenticar la cuenta de Twitter. Comprueba que el archivo Auths o las variables de entorno")
 			elif errorcode == 214:
-				print("Ya hay demasiadas aplicaciones vinculadas a este entorno de Twitter, para eliminarlas todas ejecute python cleanwebhooks.py")
-			print("Ctrl+C Para salir")
+				app.logger.error("Ya hay demasiadas aplicaciones vinculadas a este entorno de Twitter, para eliminarlas todas ejecute python cleanwebhooks.py")
 
 class wakerthread(threading.Thread):
-	def __init__(self, timermin=10):
+	def __init__(self, timermin=20):
 		threading.Thread.__init__(self)
 		self.event = threading.Event()
 		self.timermin = timermin
@@ -200,13 +199,54 @@ def associate(jsondata):
 
 def cleanconvers():
 	currtime = datetime.datetime.now()
-	for conversation in conversations:
+	for i,conversation in enumerate(conversations):
 		try:
 			delta = currtime - conversation.creationdate
-			if delta > datetime.timedelta(days=2):
-				del conversation
+			if delta > datetime.timedelta(days=2) and not conversation.punishment:
+				del conversations[i]
 		except AttributeError:
 			del conversation
+
+def convertojson(conver):
+	conv_data = {
+		"user_id": conver.user_id,
+		"tweets": [tweet[0] for tweet in conver.tweets],
+		"punishment_type": None,
+		"punishment_end": None
+	}
+	if conver.punishment:
+		conv_data["punishment_type"] = conver.punishment[0]
+		if conver.punishment[0] == "timeout":
+			conv_data["punishment_end"] = conver.punishment[1].strftime("%H:%M:%S %d/%m/%Y")
+	return conv_data
+
+def timeout(u_id, days):
+	days = int(days)
+	for conver in conversations:
+		if u_id == conver.user_id:
+			conver.timeout(days)
+			return "OK"
+	new_conv = conv.conversation(u_id)
+	new_conv.timeout(days)
+	conversations.append(new_conv)
+	return "OK"
+
+def ban(u_id):
+	for conver in conversations:
+		if u_id == conver.user_id:
+			conver.ban()
+			return "OK"
+	new_conv = conv.conversation(u_id)
+	new_conv.ban()
+	conversations.append(new_conv)
+	return "OK"
+
+def forgive(u_id):
+	for conver in conversations:
+		if u_id == conver.user_id:
+			conver.forgive()
+			return "OK"
+	return "El usuario introucido no tiene ningún castigo", 400
 
 @app.route("/webhook", methods=["GET", "POST"])
 def respond():
@@ -218,22 +258,63 @@ def respond():
 		cleanconvers()
 		return "OK"
 
+@app.route("/admin", methods=["GET", "POST"])
+def admin():
+	if request.method == "GET":
+		response = {
+			"credentials": {
+				"consumer": consumer,
+				"consumer_secret": consumer_secret
+			},
+			"conversations": []
+		}
+		for conv in conversations:
+			conv_data = convertojson(conv)
+			response["conversations"].append(conv_data)
+		return dumps(response)
+	elif request.method == "POST":
+		cleanconvers()
+		command = request.headers.get("command")
+		user_name = request.headers.get("user")
+		try:
+			user_id = api.getuserid(user_name)[0]
+			if command == "timeout":
+				days = request.args.get("days")
+				return timeout(user_id, days)
+			if command == "ban":
+				return ban(user_id)
+			if command == "forgive":
+				return forgive(user_id)
+		except requests.HTTPError:
+			return "No existe el usuario @" + user_name, 400
+
+
+
+if __name__ != "__main__":
+	gunicorn_logger = logging.getLogger('gunicorn.error')
+	app.logger.handlers = gunicorn_logger.handlers
+	app.logger.setLevel(gunicorn_logger.level)
+	welcomemsg.setaswelcomemsg()
+	signal.signal(signal.SIGTERM, signal_handler_wsgi)
+	signal.signal(signal.SIGINT, signal_handler_wsgi)
+	reg = regthread(5)
+	waker = wakerthread()
+	waker.start()
+	if APP_URL[len(APP_URL)-1] == "/":
+		url = url[:len(url)-1]
+	app.logger.info("Servidor abierto con url: " +  APP_URL)
+	reg.start()
+
 if __name__ == "__main__":
 	welcomemsg.setaswelcomemsg()
-	signal.signal(signal.SIGTERM, signal_handler)
-	onheroku = os.environ.get("ONHEROKU", 0)
-	if onheroku:
-		port = int(os.environ.get('PORT', 33507))
-		reg = regthread(10)
-		waker = wakerthread()
-		waker.start()
-	else:
-		from pyngrok import ngrok
-		port = int(os.environ.get('PORT', 5000))
-		APP_URL = ngrok.connect(port=port)
-		APP_URL = "https://" + APP_URL.split("//")[1]
-		print("Registro de eventos: http://localhost:4040")
-		reg = regthread()
+	signal.signal(signal.SIGTERM, signal_handler_debug)
+	port = int(os.environ.get('PORT', 5000))
+	APP_URL = ngrok.connect(port=port)
+	APP_URL = "https://" + APP_URL.split("//")[1]
+	print("Registro de eventos: http://localhost:4040")
+	reg = regthread(5)
+	if APP_URL[len(APP_URL)-1] == "/":
+		url = url[:len(url)-1]
 	print("Servidor abierto con url: " +  APP_URL)
 	try:
 		reg.start()
@@ -245,11 +326,7 @@ if __name__ == "__main__":
 		cleanwelcomemsg()
 		pass
 	finally:
-		print("\nSaliendo...")
+		app.logger.warning("Saliendo...")
 		cleanwelcomemsg()
-		if reg.registered:
-			webhookunregister(appid)
-		if not onheroku:
-			ngrok.disconnect(APP_URL)
-		else:
-			waker.event.set()
+		webhookunregister(appid)
+		ngrok.disconnect(APP_URL)
