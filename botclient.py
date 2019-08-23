@@ -3,6 +3,8 @@ from urllib.parse import quote_plus
 import base64
 import os
 import json
+import readline
+import datetime
 
 data = []
 url = ""
@@ -104,8 +106,8 @@ def exit_command(*args):
 
 def timeout_command(*args):
 	try:
-		user = args[0][0]
-		days = args[0][1]
+		user = args[0]
+		days = args[1]
 		days = int(days)
 	except IndexError:
 		raise InputException("Uso: timeout <usuario (@)> <dias (Nº Entero)>")
@@ -132,7 +134,7 @@ def timeout_command(*args):
 
 def ban_command(*args):
 	try:
-		user = args[0][0]
+		user = args[0]
 	except IndexError:
 		raise InputException("Uso: ban <usuario>")
 
@@ -152,7 +154,7 @@ def ban_command(*args):
 
 def forgive_command(*args):
 	try:
-		user = args[0][0]
+		user = args[0]
 	except IndexError:
 		raise InputException("Uso: forgive <usuario>")
 
@@ -170,12 +172,57 @@ def forgive_command(*args):
 		else:
 			raise
 
+def identify_command(*args):
+	given_id = False
+	command_input = args[0]
+	try:
+		tweet_id = int(command_input)
+	except ValueError:
+		splitted = command_input.split("/")
+		if "twitter.com" in splitted:
+			if "https:" in splitted:
+				tweet_id = int(splitted[5])
+			else:
+				tweet_id = int(splitted[3])
+		else:
+			raise InputException("Uso: identify <id/link del tweet>")
+	except IndexError:
+		raise InputException("Uso: identify <id/link del tweet>")
+	
+	for conver in data["conversations"]:
+		if tweet_id in conver["tweets"]:
+			print("El tweet fue publicado por @" + getusername(conver["user_id"])[0])
+			return
+	print("El tweet no fue publicado por un usuario conocido")
+
+def getbotdata_command(*args):
+	path = "botdata.json"
+	try:
+		path = args[0]
+	except IndexError:
+		pass
+	if os.path.isfile(path):
+		while True:
+			decision = input("Ya existe el archivo, ¿Desea sobreescribirlo? (y/n): ")
+			if decision in ["si", "sí", "s", "y", "yes"]:
+				pass
+				break
+			elif decision in ["no", "n"]:
+				path = path.split(".")[0] + "_" + datetime.datetime.now().strftime("%H_%M_%S_%d_%m_%Y") + ".json"
+				break
+
+	with open(path, "w") as f:
+		json.dump(data["conversations"], f, indent=4)
+
+
 
 commands = {
 	"list": (list_command, "Muestra los usuarios reconocidos por el bot"),
 	"timeout": (timeout_command, "Evita que un usuario twitee por un tiempo"),
 	"ban": (ban_command, "Evita que un usuario twitee para siempre"),
 	"forgive": (forgive_command, "Elimina el castigo de un usuario"),
+	"identify": (identify_command, "Revela el autor de un tweet publicado"),
+	"getbotdata": (getbotdata_command, "Descarga el archivo de datos del bot"),
 	"exit": (exit_command, "Desconexión")
 }
 
@@ -211,7 +258,7 @@ def main():
 					r.raise_for_status()
 					data = r.json()
 				try:
-					commands[inpt[0]][0](inpt[1::])
+					commands[inpt[0]][0](*tuple(inpt[1::]))
 				except KeyError:
 					print("Comandos disponibles:")
 					for command, value in commands.items():

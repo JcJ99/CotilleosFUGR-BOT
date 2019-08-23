@@ -1,1 +1,1 @@
-web: gunicorn wsgi:application --workers=1
+web: gunicorn wsgi --workers=1

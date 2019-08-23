@@ -10,10 +10,10 @@ if keysinenviron:
 	token = os.environ.get("TOKEN_KEY")
 	token_secret = os.environ.get("TOKEN_SECRET_KEY")
 else:
-	consumer = ''
-	consumer_secret = ''
-	token = ''
-	token_secret = ''
+	consumer = 'N6PMDWH1Tf8qIyN3qelmOviKU'
+	consumer_secret = '5NymuUT1o4NtDcsPngeXd1bfNYqoBlsZuP5tSrnXZRQWIXdEw3'
+	token = '289500652-4znRPvzQ5wcpYXZyPpDmJ3tN7UHUFHb4BjakLWwh'
+	token_secret = 'o7PMtua6AoAR7v2pROaLLevaax8RZx5HFJnqsk8jrfDxY'
 
 
 #IBM cloud key
@@ -24,5 +24,5 @@ if keysinenviron:
 	ibm_key = os.environ.get("IBM_CLOUD_KEY")
 	ibm_language_url = os.environ.get("IBM_LANGUAGE_URL")
 else:
-	ibm_key = ""
-	ibm_language_url = ""
+	ibm_key = "usva-HWZEcI69ujxddBTLryfkeKzemQ3_VLOHVrQl3nw"
+	ibm_language_url = "https://gateway-lon.watsonplatform.net/natural-language-understanding/api"

@@ -11,7 +11,7 @@ from Auths import *
 import base64
 import hashlib
 import hmac
-from json import dumps
+import json
 import logging
 import signal
 from config import *
@@ -23,7 +23,7 @@ appid = ""
 app = Flask(__name__)
 conversations = []
 welcomemsg = api.msg.create(None, welcomemsgtext)
-
+lastsave = datetime.datetime.now()
 if APP_URL != "" and APP_URL[len(APP_URL)-1] == "/":
 	APP_URL = APP_URL[:len(url)-1]
 
@@ -95,7 +95,7 @@ def challenge(crc_token):
 	response = {
 		'response_token': 'sha256=' + "".join(map(chr, base64.b64encode(sha256_hash_digest)))
 	}
-	return dumps(response)
+	return json.dumps(response)
 
 def identify(jsondata):
 	if "direct_message_events" in jsondata.keys():
@@ -164,7 +164,8 @@ def associate(jsondata):
 				conversations.append(conv.conversation(msg.sid()))
 				conversations[len(conversations) - 1].read(msg)
 			else:
-				conversations[index].read(msg)
+				if conversations[index].read(msg):
+					savedata()
 		elif typ == "fav":
 			if index == None:
 				pass
@@ -207,7 +208,7 @@ def cleanconvers():
 	for i,conversation in enumerate(conversations):
 		try:
 			delta = currtime - conversation.creationdate
-			if delta > datetime.timedelta(days=2) and not conversation.punishment:
+			if delta > datetime.timedelta(days=14) and not conversation.punishment:
 				del conversations[i]
 		except AttributeError:
 			del conversation
@@ -216,6 +217,7 @@ def convertojson(conver):
 	conv_data = {
 		"user_id": conver.user_id,
 		"tweets": [tweet[0] for tweet in conver.tweets],
+		"creationdate": conver.creationdate.strftime("%H:%M:%S %d/%m/%Y"),
 		"punishment_type": None,
 		"punishment_end": None
 	}
@@ -230,6 +232,7 @@ def timeout(u_id, days):
 	for conver in conversations:
 		if u_id == conver.user_id:
 			conver.timeout(days)
+			savedata()
 			return "OK"
 	new_conv = conv.conversation(u_id)
 	new_conv.timeout(days)
@@ -240,6 +243,7 @@ def ban(u_id):
 	for conver in conversations:
 		if u_id == conver.user_id:
 			conver.ban()
+			savedata()
 			return "OK"
 	new_conv = conv.conversation(u_id)
 	new_conv.ban()
@@ -250,8 +254,35 @@ def forgive(u_id):
 	for conver in conversations:
 		if u_id == conver.user_id:
 			conver.forgive()
+			savedata()
 			return "OK"
 	return "El usuario introucido no tiene ningún castigo", 400
+
+def savedata(path="botdata.json"):
+	global lastsave
+	to_save = [convertojson(conver) for conver in conversations]
+	with open("botdata.json", "w") as f:
+		f.write(json.dumps(to_save, indent=4))
+	lastsave = datetime.datetime.now()
+
+def loaddata(path="botdata.json"):
+	with open(path, "r") as f:
+		data = json.load(f)
+	for conver in data:
+		if conver["punishment_type"] == "timeout":
+			punishment = ("timeout", datetime.datetime.strptime(conver["punishment_end"],"%H:%M:%S %d/%m/%Y"))
+		elif conver["punishment_type"] == "ban":
+			punishment = ("ban", None)
+		else:
+			punishment = None
+		conver_object = conv.conversation(
+			conver["user_id"],
+			tweets = [(tweet, datetime.datetime.now() - datetime.timedelta(hours=2)) for tweet in conver["tweets"]],
+			creationdate = datetime.datetime.now(),
+			punishment = punishment
+			)
+	conversations.append(conver_object)
+
 
 @app.route("/webhook", methods=["GET", "POST"])
 def respond():
@@ -273,10 +304,11 @@ def admin():
 			},
 			"conversations": []
 		}
+		cleanconvers()
 		for conv in conversations:
 			conv_data = convertojson(conv)
 			response["conversations"].append(conv_data)
-		return dumps(response)
+		return json.dumps(response)
 	elif request.method == "POST":
 		cleanconvers()
 		command = request.headers.get("command")
@@ -294,6 +326,8 @@ def admin():
 			return "No existe el usuario @" + user_name, 400
 
 if __name__ == "__main__":
+	if os.path.isfile("botdata.json"):
+		loaddata()
 	signal.signal(signal.SIGTERM, signal_handler_debug)
 	port = int(os.environ.get('PORT', 8000))
 	print("Registro de eventos: http://localhost:4040")
@@ -310,5 +344,6 @@ if __name__ == "__main__":
 		pass
 	finally:
 		app.logger.warning("Saliendo...")
+		savedata()
 		cleanwelcomemsg()
 		webhookunregister(appid)

@@ -11,9 +11,9 @@ class ConverError(BaseException):
 		self.critical = critical
 
 class conversation:
-	def __init__(self, user_id):
+	def __init__(self, user_id, tweets=[], creationdate=datetime.datetime.now(), punishment=None):
 		self.user_id = user_id
-		self.tweets = []
+		self.tweets = tweets
 		self.tweetstopost = []
 		self.pendingnot = []
 		self.currtweettext = ""
@@ -22,7 +22,8 @@ class conversation:
 		self.finalattachments = []
 		self.taskqueue = []
 		self.thread = threading.Thread(target=self.queue)
-		self.punishment = None
+		self.punishment = punishment
+		self.creationdate = creationdate
 
 	def queue(self):
 		while not len(self.taskqueue) == 0:
@@ -60,6 +61,7 @@ class conversation:
 			else:
 				raise ConverError("Has recibido el mayor castigo por comportamiento inapropiado, no podrás volver a twittear nunca más", critical=True)
 		#Check if there is a current tweet on editing
+		self.creationdate = datetime.datetime.now()
 		conditions = [
 			self.currtweettext == "",
 			self.currtweetattachments == [],
@@ -226,6 +228,7 @@ class conversation:
 				self.taskqueue.append(self.send())
 				for noti in self.pendingnot:
 					noti.post()
+				return True
 		except ConverError as e:
 			self.respond(errortext=e.strerr)
 			if e.critical:
