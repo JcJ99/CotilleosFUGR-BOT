@@ -19,6 +19,3 @@ reg = regthread()
 waker = wakerthread()
 waker.start()
 reg.start()
-
-if __name__ == "__main__":
-	application.start()
