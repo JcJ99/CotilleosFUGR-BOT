@@ -17,7 +17,7 @@ import signal
 from config import *
 from welcomemsg import welcomemsgtext
 from cleanwebhooks import cleanwelcomemsg
-from pyngrok import ngrok
+#from pyngrok import ngrok
 
 appid = ""
 
@@ -292,7 +292,7 @@ def admin():
 
 
 
-if __name__ != "__main__":
+"""if __name__ != "__main__":
 	gunicorn_logger = logging.getLogger('gunicorn.error')
 	app.logger.handlers = gunicorn_logger.handlers
 	app.logger.setLevel(gunicorn_logger.level)
@@ -304,7 +304,7 @@ if __name__ != "__main__":
 	if APP_URL[len(APP_URL)-1] == "/":
 		url = url[:len(url)-1]
 	app.logger.info("Servidor abierto con url: " +  APP_URL)
-	reg.start()
+	reg.start()"""
 
 if __name__ == "__main__":
 	signal.signal(signal.SIGTERM, signal_handler_debug)
