@@ -1,6 +1,6 @@
 import os
 
-APP_URL = "" #No usar / al final de la url
+APP_URL = "" #HTTPS URL
 TWITTER_ENV_NAME = "chatbot"
 MAX_TWEETS_PER_HOUR = 5
 

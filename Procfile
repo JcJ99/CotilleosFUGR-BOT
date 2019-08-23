@@ -1,1 +1,1 @@
-web: gunicorn cotilleosfugrbot:app
+web: gunicorn wsgi

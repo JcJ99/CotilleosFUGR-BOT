@@ -17,13 +17,15 @@ import signal
 from config import *
 from welcomemsg import welcomemsgtext
 from cleanwebhooks import cleanwelcomemsg
-#from pyngrok import ngrok
 
 appid = ""
 
 app = Flask(__name__)
 conversations = []
 welcomemsg = api.msg.create(None, welcomemsgtext)
+
+if APP_URL != "" and APP_URL[len(APP_URL)-1] == "/":
+	APP_URL = APP_URL[:len(url)-1]
 
 class SIGTERM(BaseException):
 	pass
@@ -43,6 +45,7 @@ class regthread(threading.Thread):
 		global appid
 		sleep(self.time)
 		try:
+			app.logger.critical("Servidor abierto con url: " +  APP_URL)
 			r = requests.post("https://api.twitter.com/1.1/account_activity/all/" + TWITTER_ENV_NAME + "/webhooks.json", auth=msgauth, params={"url": APP_URL + "/webhook"})
 			r.raise_for_status()
 			appid = r.json()["id"]
@@ -290,31 +293,11 @@ def admin():
 		except requests.HTTPError:
 			return "No existe el usuario @" + user_name, 400
 
-
-
-"""if __name__ != "__main__":
-	gunicorn_logger = logging.getLogger('gunicorn.error')
-	app.logger.handlers = gunicorn_logger.handlers
-	app.logger.setLevel(gunicorn_logger.level)
-	signal.signal(signal.SIGTERM, signal_handler_wsgi)
-	signal.signal(signal.SIGINT, signal_handler_wsgi)
-	reg = regthread(10)
-	waker = wakerthread()
-	waker.start()
-	if APP_URL[len(APP_URL)-1] == "/":
-		url = url[:len(url)-1]
-	app.logger.info("Servidor abierto con url: " +  APP_URL)
-	reg.start()"""
-
 if __name__ == "__main__":
 	signal.signal(signal.SIGTERM, signal_handler_debug)
-	port = int(os.environ.get('PORT', 5000))
-	APP_URL = ngrok.connect(port=port)
-	APP_URL = "https://" + APP_URL.split("//")[1]
+	port = int(os.environ.get('PORT', 8000))
 	print("Registro de eventos: http://localhost:4040")
-	reg = regthread(5)
-	if APP_URL[len(APP_URL)-1] == "/":
-		url = url[:len(url)-1]
+	reg = regthread()
 	print("Servidor abierto con url: " +  APP_URL)
 	try:
 		reg.start()
@@ -329,4 +312,3 @@ if __name__ == "__main__":
 		app.logger.warning("Saliendo...")
 		cleanwelcomemsg()
 		webhookunregister(appid)
-		ngrok.disconnect(APP_URL)
