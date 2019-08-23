@@ -49,6 +49,8 @@ class regthread(threading.Thread):
 			app.logger.critical("Aplicación registrada correctamente en Twitter con id: " + appid)
 			subcribeforaccount()
 			app.logger.critical("Recibiendo eventos del entorno: " + TWITTER_ENV_NAME)
+			welcomemsg.setaswelcomemsg()
+			app.logger.critical("Mensaje de bienvenida establecido")
 			self.registered = True
 		except requests.HTTPError:
 			errormsg = r.json()["errors"][0]["message"]
@@ -294,10 +296,9 @@ if __name__ != "__main__":
 	gunicorn_logger = logging.getLogger('gunicorn.error')
 	app.logger.handlers = gunicorn_logger.handlers
 	app.logger.setLevel(gunicorn_logger.level)
-	welcomemsg.setaswelcomemsg()
 	signal.signal(signal.SIGTERM, signal_handler_wsgi)
 	signal.signal(signal.SIGINT, signal_handler_wsgi)
-	reg = regthread(5)
+	reg = regthread(10)
 	waker = wakerthread()
 	waker.start()
 	if APP_URL[len(APP_URL)-1] == "/":
@@ -306,7 +307,6 @@ if __name__ != "__main__":
 	reg.start()
 
 if __name__ == "__main__":
-	welcomemsg.setaswelcomemsg()
 	signal.signal(signal.SIGTERM, signal_handler_debug)
 	port = int(os.environ.get('PORT', 5000))
 	APP_URL = ngrok.connect(port=port)
