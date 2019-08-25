@@ -4,10 +4,17 @@ from cotilleosfugrbot import app as application
 from cleanwebhooks import cleanwelcomemsg
 import logging
 import signal
+from requests.exceptions import HTTPError
 
 def signal_handler_wsgi(signum, frame):
 	cleanwelcomemsg()
-	webhookunregister(cotilleosfugrbot.appid)
+	try:
+		webhookunregister(cotilleosfugrbot.appid)
+	except HTTPError as e:
+		if e.response.status_code == 404:
+			pass
+		else:
+			raise
 	waker.event.set()
 
 gunicorn_logger = logging.getLogger('gunicorn.error')
