@@ -10,6 +10,7 @@ import datetime
 from Auths import *
 import base64
 import hashlib
+from urllib.parse import quote_plus
 import hmac
 import json
 import logging
@@ -17,15 +18,37 @@ import signal
 from config import *
 from welcomemsg import welcomemsgtext
 from cleanwebhooks import cleanwelcomemsg
+from flask_sqlalchemy import SQLAlchemy
 
 appid = ""
 
 app = Flask(__name__)
+app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
+db = SQLAlchemy(app)
 conversations = []
 welcomemsg = api.msg.create(None, welcomemsgtext)
-lastsave = datetime.datetime.now()
 if APP_URL != "" and APP_URL[len(APP_URL)-1] == "/":
 	APP_URL = APP_URL[:len(url)-1]
+
+class Conversation_model(db.Model):
+	__tablename__ = "conversations"
+	id = db.Column(db.BigInteger, primary_key=True)
+	tweets = db.relationship("Tweet_model", backref="conversation", lazy=True)
+	creation_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now())
+	punishment_type = db.Column(db.String(7), default=None)
+	punishment_end = db.Column(db.DateTime, default=None)
+
+	def __repr__(self):
+		return "<Conversation: %r>" % self.id
+
+class Tweet_model(db.Model):
+	__tablename__ = "tweets"
+	id = db.Column(db.BigInteger, primary_key=True)
+	creation_date = db.Column(db.DateTime, nullable=False)
+	conversation_id = db.Column(db.BigInteger, db.ForeignKey("conversations.id", ondelete="CASCADE"), nullable=False)
+
+	def __repr__(self):
+		return "<Tweet: %r>" % self.id
 
 class SIGTERM(BaseException):
 	pass
@@ -73,10 +96,21 @@ class wakerthread(threading.Thread):
 		self.event = threading.Event()
 		self.timermin = timermin
 	def run(self):
-		self.event.wait(60*self.timermin)
+		first_try = True
 		while not self.event.is_set():
-			r = requests.put("https://api.twitter.com/1.1/account_activity/all/" + TWITTER_ENV_NAME + "/webhooks/" + appid + ".json", auth=msgauth)
+			if not first_try:
+				r = requests.put("https://api.twitter.com/1.1/account_activity/all/" + TWITTER_ENV_NAME + "/webhooks/" + appid + ".json", auth=msgauth)
+			first_try = False
 			self.event.wait(60*self.timermin)
+
+class databaseupdaterthread(threading.Thread):
+	def __init__(self, conver, wait=20):
+		threading.Thread.__init__(self)
+		self.conver = conver
+		self.wait = wait
+	def run(self):
+		sleep(self.wait)
+		update_database(self.conver)
 
 def webhookunregister(appid):
 	r = requests.delete("https://api.twitter.com/1.1/account_activity/all/" + TWITTER_ENV_NAME + "/webhooks/" + appid + ".json", auth=msgauth)
@@ -124,7 +158,12 @@ def knownuser(jsondata):
 			if c.user_id == uid:
 				return index
 			index += 1
-		return None
+		conver = Conversation_model.query.get(int(uid))
+		if conver is None:
+			return None
+		else:
+			conversations.append(conv.conversation.from_model(conver))
+			return len(conversations) - 1
 	if typ == "fav":
 		tid = jsondata["favorite_events"][0]["favorited_status"]["id"]
 		for c in conversations:
@@ -132,7 +171,12 @@ def knownuser(jsondata):
 				if tid == tweet[0]:
 					return index
 			index += 1
-		return None
+		twt = Tweet_model.query.get(tid)
+		if twt is None:
+			return None
+		else:
+			conversations.append(conv.conversation.from_model(twt.conversation))
+			return len(conversations) - 1
 	if typ in ["rt", "quote", "reply"]:
 		if typ == "quote":
 			tid = jsondata["tweet_create_events"][0]["quoted_status_id"]
@@ -141,7 +185,12 @@ def knownuser(jsondata):
 					if tid == tweet[0]:
 						return index
 				index += 1
-			return None
+			twt = Tweet_model.query.get(tid)
+			if twt == None:
+				return None
+			else:
+				conversations.append(conv.conversation.from_model(twt.conversation))
+				return len(conversations) - 1
 		else:
 			uid = jsondata["tweet_create_events"][0]["user"]["id"]
 			if (str(uid) == api.selfid):
@@ -150,7 +199,12 @@ def knownuser(jsondata):
 				if c.user_id == str(uid):
 					return index
 				index += 1
-			return None
+			conver = Conversation_model.query.get(int(uid))
+			if conver is None:
+				return None
+			else:
+				conversations.append(conv.conversation.from_model(conver))
+				return len(conversations) - 1
 
 def associate(jsondata):
 	typ = identify(jsondata)
@@ -165,7 +219,10 @@ def associate(jsondata):
 				conversations[len(conversations) - 1].read(msg)
 			else:
 				if conversations[index].read(msg):
-					savedata()
+					#If send command received
+					t = databaseupdaterthread(conversations[index])
+					t.start()
+
 		elif typ == "fav":
 			if index == None:
 				pass
@@ -175,6 +232,8 @@ def associate(jsondata):
 				link = "https://twitter.com/" + api.selfscreenname + "/status/" + fav["favorited_status"]["id_str"]
 				text = "A @" + user + " le ha gustado tu tweet"
 				conversations[index].notify(text, link)
+				if not conversations[index].editingtweets:
+					del conversations[index]
 		elif typ == "rt":
 			if index == None:
 				pass
@@ -184,6 +243,8 @@ def associate(jsondata):
 				link = "https://twitter.com/" + api.selfscreenname + "/status/" + rt["retweeted_status"]["id_str"]
 				text = "@" + user + " ha retwiteado tu tweet"
 				conversations[index].notify(text, link)
+				if not conversations[index].editingtweets:
+					del conversations[index]
 		elif typ == "quote":
 			if index == None:
 				pass
@@ -193,6 +254,8 @@ def associate(jsondata):
 				link = "https://twitter.com/" + api.selfscreenname + "/status/" + quote["id_str"]
 				text = "@" + user + " ha citado tu tweet"
 				conversations[index].notify(text, link)
+				if not conversations[index].editingtweets:
+					del conversations[index]
 		elif typ == "reply":
 			if index == None:
 				pass
@@ -202,87 +265,58 @@ def associate(jsondata):
 				link = "https://twitter.com/" + api.selfscreenname + "/status/" + reply["id_str"]
 				text = "@" + user + " ha respondido a tu tweet"
 				conversations[index].notify(text, link)
+				if not conversations[index].editingtweets:
+					del conversations[index]
+
+def update_database(conver):
+	global conversations
+	c = Conversation_model.query.get(int(conver.user_id))
+	if c is None:
+		if conver.punishment:
+			if conver.punishment[0] == "timeout":
+				c = Conversation_model(id=int(conver.user_id), punishment_type="timeout", punishment_end=conver.punishment[1])
+			elif conver.punishment[0] == "ban":
+				c = Conversation_model(id=int(conver.user_id), punishment_type="ban")
+		else:
+			c = Conversation_model(id=int(conver.user_id))
+		db.session.add(c)
+		tweets_to_add = [Tweet_model(id=tweet[0], creation_date=tweet[1], conversation_id=int(conver.user_id)) for tweet in conver.tweets]
+		db.session.add_all(tweets_to_add)
+		db.session.commit()
+	else:
+		known_tweets_id = [tweet.id for tweet in c.tweets]
+		tweets_to_add = [Tweet_model(id=tweet[0], creation_date=tweet[1], conversation_id=int(conver.user_id)) for tweet in conver.tweets if tweet[0] not in known_tweets_id]
+		db.session.add_all(tweets_to_add)
+		db.session.commit()
 
 def cleanconvers():
-	currtime = datetime.datetime.now()
+	minimum_date = datetime.datetime.now() - datetime.timedelta(days=14)
+	con = Conversation_model.query.filter(Conversation_model.creation_date < minimum_date, Conversation_model.punishment_type not in ["ban"]).all()
+	for c in con:
+		if c.punishment_type and c.punishment_end < datetime.datetime.now():
+			db.session.delete(c)
+		else:
+			db.session.delete(c)
+	db.session.commit()
 	for i,conversation in enumerate(conversations):
 		try:
-			delta = currtime - conversation.creationdate
-			if delta > datetime.timedelta(days=14) and not conversation.punishment:
+			if not conversation.editingtweets():
 				del conversations[i]
 		except AttributeError:
 			del conversation
 
-def convertojson(conver):
-	conv_data = {
-		"user_id": conver.user_id,
-		"tweets": [tweet[0] for tweet in conver.tweets],
-		"creationdate": conver.creationdate.strftime("%H:%M:%S %d/%m/%Y"),
-		"punishment_type": None,
-		"punishment_end": None
+def getbearertoken(consumer, consumer_secret):
+	encoded_consumer = quote_plus(consumer)
+	encoded_consumer_secret = quote_plus(consumer_secret)
+	key_to_send = encoded_consumer + ":" + encoded_consumer_secret
+	key_to_send = base64.b64encode(key_to_send.encode())
+	headers = {
+		"Authorization": "Basic " + key_to_send.decode(),
+		"Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
 	}
-	if conver.punishment:
-		conv_data["punishment_type"] = conver.punishment[0]
-		if conver.punishment[0] == "timeout":
-			conv_data["punishment_end"] = conver.punishment[1].strftime("%H:%M:%S %d/%m/%Y")
-	return conv_data
-
-def timeout(u_id, days):
-	days = int(days)
-	for conver in conversations:
-		if u_id == conver.user_id:
-			conver.timeout(days)
-			savedata()
-			return "OK"
-	new_conv = conv.conversation(u_id)
-	new_conv.timeout(days)
-	conversations.append(new_conv)
-	return "OK"
-
-def ban(u_id):
-	for conver in conversations:
-		if u_id == conver.user_id:
-			conver.ban()
-			savedata()
-			return "OK"
-	new_conv = conv.conversation(u_id)
-	new_conv.ban()
-	conversations.append(new_conv)
-	return "OK"
-
-def forgive(u_id):
-	for conver in conversations:
-		if u_id == conver.user_id:
-			conver.forgive()
-			savedata()
-			return "OK"
-	return "El usuario introucido no tiene ningún castigo", 400
-
-def savedata(path="botdata.json"):
-	global lastsave
-	to_save = [convertojson(conver) for conver in conversations]
-	with open("botdata.json", "w") as f:
-		f.write(json.dumps(to_save, indent=4))
-	lastsave = datetime.datetime.now()
-
-def loaddata(path="botdata.json"):
-	with open(path, "r") as f:
-		data = json.load(f)
-	for conver in data:
-		if conver["punishment_type"] == "timeout":
-			punishment = ("timeout", datetime.datetime.strptime(conver["punishment_end"],"%H:%M:%S %d/%m/%Y"))
-		elif conver["punishment_type"] == "ban":
-			punishment = ("ban", None)
-		else:
-			punishment = None
-		conver_object = conv.conversation(
-			conver["user_id"],
-			tweets = [(tweet, datetime.datetime.now() - datetime.timedelta(hours=2)) for tweet in conver["tweets"]],
-			creationdate = datetime.datetime.now(),
-			punishment = punishment
-			)
-	conversations.append(conver_object)
-
+	params = {"grant_type": "client_credentials"}
+	r = requests.post("https://api.twitter.com/oauth2/token", headers=headers, params=params)
+	return r.json()["access_token"]
 
 @app.route("/webhook", methods=["GET", "POST"])
 def respond():
@@ -297,37 +331,16 @@ def respond():
 @app.route("/admin", methods=["GET", "POST"])
 def admin():
 	if request.method == "GET":
-		response = {
-			"credentials": {
-				"consumer": consumer,
-				"consumer_secret": consumer_secret
-			},
-			"conversations": []
-		}
-		cleanconvers()
-		for conv in conversations:
-			conv_data = convertojson(conv)
-			response["conversations"].append(conv_data)
-		return json.dumps(response)
-	elif request.method == "POST":
-		cleanconvers()
-		command = request.headers.get("command")
-		user_name = request.headers.get("user")
-		try:
-			user_id = api.getuserid(user_name)[0]
-			if command == "timeout":
-				days = request.args.get("days")
-				return timeout(user_id, days)
-			if command == "ban":
-				return ban(user_id)
-			if command == "forgive":
-				return forgive(user_id)
-		except requests.HTTPError:
-			return "No existe el usuario @" + user_name, 400
+		psw = request.headers.get("password")
+		if psw == ADMIN_PASS:
+			return {
+				"database_url": DATABASE_URL,
+				"bearer_token": getbearertoken(consumer, consumer_secret)
+			}
+		else:
+			return "Contraseña no válida", 400
 
 if __name__ == "__main__":
-	if os.path.isfile("botdata.json"):
-		loaddata()
 	signal.signal(signal.SIGTERM, signal_handler_debug)
 	port = int(os.environ.get('PORT', 8000))
 	print("Registro de eventos: http://localhost:4040")
@@ -344,6 +357,5 @@ if __name__ == "__main__":
 		pass
 	finally:
 		app.logger.warning("Saliendo...")
-		savedata()
 		cleanwelcomemsg()
 		webhookunregister(appid)

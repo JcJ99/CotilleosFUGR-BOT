@@ -6,7 +6,6 @@ import logging
 import signal
 
 def signal_handler_wsgi(signum, frame):
-	cotilleosfugrbot.savedata()
 	cleanwelcomemsg()
 	webhookunregister(cotilleosfugrbot.appid)
 	waker.event.set()

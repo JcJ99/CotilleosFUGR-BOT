@@ -11,7 +11,7 @@ class ConverError(BaseException):
 		self.critical = critical
 
 class conversation:
-	def __init__(self, user_id, tweets=[], creationdate=datetime.datetime.now(), punishment=None):
+	def __init__(self, user_id, tweets=[], creationdate=datetime.datetime.utcnow(), punishment=None):
 		self.user_id = user_id
 		self.tweets = tweets
 		self.tweetstopost = []
@@ -24,6 +24,18 @@ class conversation:
 		self.thread = threading.Thread(target=self.queue)
 		self.punishment = punishment
 		self.creationdate = creationdate
+
+	@classmethod
+	def from_model(cls, model):
+		model_tweets = model.tweets
+		tweets = [(tweet.id, tweet.creation_date) for tweet in model_tweets]
+		if model.punishment_type == "timeout":
+			punishment = ("timeout", model.punishment_end)
+		elif model.punishment_type == "ban":
+			punishment = ("ban", None)
+		else:
+			punishment = None
+		return cls(str(model.id), tweets=tweets, creationdate=model.creation_date, punishment=punishment)
 
 	def queue(self):
 		while not len(self.taskqueue) == 0:
@@ -43,7 +55,7 @@ class conversation:
 	def send(self):
 		spamming = False
 		try:
-			delta = datetime.datetime.now() - self.tweets[len(self.tweets)-MAX_TWEETS_PER_HOUR-2][1]
+			delta = datetime.datetime.utcnow() - self.tweets[len(self.tweets)-MAX_TWEETS_PER_HOUR-2][1]
 			if delta < datetime.timedelta(hours=1):
 				spamming = True
 		except IndexError:
@@ -53,15 +65,15 @@ class conversation:
 			raise ConverError("Has superado el límite de 5 tweets por hora, podrás volver a twittear a las " + timefortweeting.strftime("%X"))
 		if self.punishment:
 			if self.punishment[0] == "timeout":
-				if self.punishment[1] < datetime.datetime.now():
+				if self.punishment[1] < datetime.datetime.utcnow():
 					self.punishment = None
 				else:
-					end = self.punishment[1].strftime("%H:%M:%S %d/%m/%Y")
+					end = self.punishment[1].strftime("%H:%M:%S %d/%m/%Y UTC")
 					raise ConverError("Has recibido un castigo por comportamiento inapropiado, no podrás twittear hasta: " + end, critical=True)
 			else:
 				raise ConverError("Has recibido el mayor castigo por comportamiento inapropiado, no podrás volver a twittear nunca más", critical=True)
 		#Check if there is a current tweet on editing
-		self.creationdate = datetime.datetime.now()
+		self.creationdate = datetime.datetime.utcnow()
 		conditions = [
 			self.currtweettext == "",
 			self.currtweetattachments == [],
@@ -77,7 +89,7 @@ class conversation:
 		for i,tweet in enumerate(self.tweetstopost):
 			if i != 0:
 				tweet.inreplyto(self.tweets[len(self.tweets)-1])
-			self.tweets.append((tweet.post(), datetime.datetime.now()))
+			self.tweets.append((tweet.post(), datetime.datetime.utcnow()))
 		self.tweetstopost = []
 		self.currtweetquote = ""
 		self.currtweetattachments = []
@@ -131,7 +143,7 @@ class conversation:
 	def addtweet(self):
 		spamming = False
 		try:
-			delta = datetime.datetime.now() - self.tweets[len(self.tweets)-MAX_TWEETS_PER_HOUR-2][1]
+			delta = datetime.datetime.utcnow() - self.tweets[len(self.tweets)-MAX_TWEETS_PER_HOUR-2][1]
 			if delta < datetime.timedelta(hours=1):
 				spamming = True
 		except IndexError:
@@ -162,12 +174,15 @@ class conversation:
 		if self.currtweetquote == None: self.currtweetquote = ""
 
 	def endtweetedit(self):
+		text_rate = is_inapropiate(self.currtweettext)
 		if len(self.currtweettext) > 280:
 			raise ConverError(f"El tweet contiene más de 280 carácteres ({len(self.currtweettext)})")
 		elif (self.currtweettext == "" or self.currtweettext.isspace()) and len(self.currtweetattachments)==0:
 			raise ConverError("Sólo se permiten enviar tweets sin texto si estos contienen archivos adjuntos")
-		elif is_inapropiate(self.currtweettext)[0]:
+		elif text_rate[0]:
 			raise ConverError("El tweet que deseas enviar es inapropiado")
+		elif text_rate[1] == 0:
+			raise ConverError("El texto no tiene sentido")
 		else:
 			tweet = api.tweet.create(self.currtweettext)
 			for attachment in self.currtweetattachments:
@@ -233,6 +248,7 @@ class conversation:
 			self.respond(errortext=e.strerr)
 			if e.critical:
 				self.cancel()
+				return True
 
 	def respond(self, errortext=""):
 		responsetext = "Se publicará el siguiente "
@@ -327,7 +343,7 @@ class conversation:
 		return not all(conditions)
 
 	def timeout(self,days):
-		end_punishment = datetime.datetime.now() + datetime.timedelta(days=days)
+		end_punishment = datetime.datetime.utcnow() + datetime.timedelta(days=days)
 		self.punishment = "timeout", end_punishment
 
 	def ban(self):

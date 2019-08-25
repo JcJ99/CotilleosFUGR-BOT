@@ -1,20 +1,49 @@
 import requests
-from urllib.parse import quote_plus
 import base64
 import os
 import json
 import readline
 import datetime
+import sys
+import pip
+from contextlib import contextmanager
+from sqlalchemy import create_engine, Column, DateTime, BigInteger, String, case, ForeignKey
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship, sessionmaker
 
-data = []
 url = ""
-bearer_token = ""
+bearer_auth = None
+database_url = ""
+base_engine = None
+Base = declarative_base()
+Session = None
+session = None
+
+class Conversation_model(Base):
+	__tablename__ = "conversations"
+	id = Column(BigInteger, primary_key=True)
+	tweets = relationship("Tweet_model", backref="conversation", cascade="all,delete")
+	creation_date = Column(DateTime, nullable=False, default=datetime.datetime.now())
+	punishment_type = Column(String(7), default=None)
+	punishment_end = Column(DateTime, default=None)
+
+	def __repr__(self):
+		return "<Conversation: %r>" % self.id
+
+class Tweet_model(Base):
+	__tablename__ = "tweets"
+	id = Column(BigInteger, primary_key=True)
+	creation_date = Column(DateTime, nullable=False)
+	conversation_id = Column(BigInteger, ForeignKey("conversations.id"), nullable=False)
+
+	def __repr__(self):
+		return "<Tweet: %r>" % self.id
 
 class InputException(BaseException):
 	def __init__(self, message):
 		self.sterr = message
 
-class bearer_auth(requests.auth.AuthBase):
+class bearer_auth_handler(requests.auth.AuthBase):
 	def __init__(self, bearer_key):
 		self.bearer_key = bearer_key
 
@@ -22,84 +51,73 @@ class bearer_auth(requests.auth.AuthBase):
 		r.headers["Authorization"] = "Bearer " + self.bearer_key
 		return r
 
-def getbearertoken(consumer, consumer_secret):
-	encoded_consumer = quote_plus(consumer)
-	encoded_consumer_secret = quote_plus(consumer_secret)
-	key_to_send = encoded_consumer + ":" + encoded_consumer_secret
-	key_to_send = base64.b64encode(key_to_send.encode())
-	headers = {
-		"Authorization": "Basic " + key_to_send.decode(),
-		"Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
-	}
-	params = {"grant_type": "client_credentials"}
-	r = requests.post("https://api.twitter.com/oauth2/token", headers=headers, params=params)
-	r.raise_for_status()
-	return r.json()["access_token"]
-
 def ask_url():
-	global url, bearer_token
-	url = input("Introduce la url del bot: ")
+	global url, bearer_auth, database_url, base_engine, Session, session
+	url = input("Introduzca la url del bot: ")
+	psw = input("Introduzca Contraseña de administrador: ")
 	while True:
 		if len(url) != 0 and url[len(url)-1] == "/":
 			url = url[:len(url)-1]
 		try:
-			r = requests.get(url + "/admin")
+			r = requests.get(url + "/admin", headers={"password": psw})
+			r.raise_for_status()
+			bearer_auth = bearer_auth_handler(r.json()["bearer_token"])
+			database_url = r.json()["database_url"]
+			with open(".boturl", "w") as f:
+				f.write(url)
+			engine = create_engine(database_url, echo=False)
+			Session = sessionmaker(bind=engine)
+			session = Session()
+			break
 		except requests.exceptions.MissingSchema:
 			url = input("Url no válida, vuelva a introducirla: ")
-			continue
 		except requests.exceptions.InvalidURL:
 			url = input("Url no válida, vuelva a introducirla: ")
-			continue
-		if r.status_code != 404:
-			try:
-				consumer = r.json()["credentials"]["consumer"]
-				consumer_secret = r.json()["credentials"]["consumer_secret"]
-				bearer_token = getbearertoken(consumer, consumer_secret)
-				with open(".boturl", "w") as f:
-					f.write(url)
-				break
-			except json.decoder.JSONDecodeError:
-				url = input("La url no corresponde con ningún bot, vuelva a introducirla: ")
-			except KeyError:
-				url = input("La url no corresponde con ningún bot, vuelva a introducirla: ")
+		except json.decoder.JSONDecodeError:
+			url = input("La url no corresponde con ningún bot, vuelva a introducirla: ")
+		except KeyError:
+			url = input("La url no corresponde con ningún bot, vuelva a introducirla: ")
+		except requests.exceptions.HTTPError as e:
+			if e.response.status_code == 404:
+				url = input("La url no existe, vuelva a introducirla: ")
+			elif e.response.status_code == 400:
+				psw = input("Contraseña no válida vuelva a introducirla: ")
+			else:
+				raise
+
 #Function for obtaining user id from screen name
 def getuserid(*screen_names):
 	par = {"screen_name": screen_names}
-	auth = data
-	r = requests.get("https://api.twitter.com/1.1/users/lookup.json", auth=bearer_auth(bearer_token), params=par)
+	r = requests.get("https://api.twitter.com/1.1/users/lookup.json", auth=bearer_auth, params=par)
 	r.raise_for_status()
 	return [user["id_str"] for user in r.json()]
 
 #Function for obtaining user_name from id
 def getusername(*ids):
 	par = {"user_id": ids}
-	r = requests.get("https://api.twitter.com/1.1/users/lookup.json", auth=bearer_auth(bearer_token), params=par)
+	r = requests.get("https://api.twitter.com/1.1/users/lookup.json", auth=bearer_auth, params=par)
 	r.raise_for_status()
 	return [user["screen_name"] for user in r.json()]
 
 def list_command(*args):
-	users = [conv for conv in data["conversations"]]
-	users_id = [user["user_id"] for user in users]
-	#Timeouted users second
-	for i,user in enumerate(users):
-		if user["punishment_type"] == "timeout":
-			del users[i]
-			del users_id[i]
-			users.insert(0, user)
-			users_id.insert(0, user["user_id"])
-	#Banned users first
-	for i,user in enumerate(users):
-		if user["punishment_type"] == "ban":
-			del users[i]
-			del users_id[i]
-			users.insert(0, user)
-			users_id.insert(0, user["user_id"])
-	if users != []:
-		users_name = getusername(users_id)
-		for i, (uid, name) in enumerate(zip(users_id, users_name)):
-			print("@" + name + "\t" + "id: " + uid + "\t" + "castigo: " + str(users[i]["punishment_type"]) + "\t" + "hasta: " + str(users[i]["punishment_end"]))
+	when = {
+		"ban": 2,
+		"timeout": 1,
+		None: 0
+	}
+	sort = case(value=Conversation_model.punishment_type, whens=when)
+	convs = session.query(Conversation_model).order_by(sort).all()
+	if convs:
+		users_name = getusername(*tuple([conv.id for conv in convs]))
+		for i,conv in enumerate(convs):
+			if conv.punishment_type == "timeout":
+				punishment_end = conv.punishment_end.strftime("%H:%M:%S %d/%m/%Y")
+			else:
+				punishment_end = None
+			output = "@{0: <20} id: {1: <20} castigo: {2: <7} hasta: {3}".format(users_name[i], conv.id, str(conv.punishment_type), str(punishment_end))
+			print(output)
 	else:
-		print("No hay usuarios reconocidos")
+		print("Ningún usuario en el registro")
 
 def exit_command(*args):
 	raise KeyboardInterrupt
@@ -109,68 +127,63 @@ def timeout_command(*args):
 		user = args[0]
 		days = args[1]
 		days = int(days)
+		user_id = getuserid(user)[0]
 	except IndexError:
 		raise InputException("Uso: timeout <usuario (@)> <dias (Nº Entero)>")
 	except ValueError:
 		raise InputException("Uso: timeout <usuario (@)> <dias (Nº Entero)>")
+	except requests.exceptions.HTTPError as e:
+		if e.response.status_code == 404:
+			raise InputException("El usuario no existe")
 
-	headers = {
-		"user": user,
-		"command": "timeout"
-	}
-
-	params = {
-		"days": days
-	}
-
-	r = requests.post(url + "/admin", headers=headers, params=params)
-	try:
-		r.raise_for_status()
-	except requests.HTTPError as e:
-		if e.response.status_code == 400:
-		 	raise InputException(e.response.text)
-		else:
-			raise
+	user = session.query(Conversation_model).get(user_id)
+	if user:
+		user.punishment_type = "timeout"
+		user.punishment_end = datetime.datetime.utcnow() + datetime.timedelta(days=1)
+		session.commit()
+	else:
+		user = Conversation_model(id=user_id, punishment_type="timeout", punishment_end=datetime.datetime.utcnow() + datetime.timedelta(days=days))
+		session.add(user)
+		session.commit()
 
 def ban_command(*args):
 	try:
 		user = args[0]
+		user_id = getuserid(user)[0]
 	except IndexError:
-		raise InputException("Uso: ban <usuario>")
+		raise InputException("Uso: ban <usuario (@)>")
+	except ValueError:
+		raise InputException("Uso: ban <usuario (@)>")
+	except requests.exceptions.HTTPError as e:
+		if e.response.status_code == 404:
+			raise InputException("El usuario no existe")
 
-	headers = {
-		"user": user,
-		"command": "ban"
-	}
-
-	r = requests.post(url + "/admin", headers=headers)
-	try:
-		r.raise_for_status()
-	except requests.HTTPError as e:
-		if e.response.status_code == 400:
-		 	raise InputException(e.response.text)
-		else:
-			raise
+	user = session.query(Conversation_model).get(user_id)
+	if user:
+		user.punishment_type = "ban"
+		session.commit()
+	else:
+		user = Conversation_model(id=user_id, punishment_type="ban")
+		session.add(user)
+		session.commit()
 
 def forgive_command(*args):
 	try:
 		user = args[0]
+		user_id = getuserid(user)[0]
 	except IndexError:
-		raise InputException("Uso: forgive <usuario>")
+		raise InputException("Uso: forgive <usuario (@)>")
+	except requests.exceptions.HTTPError as e:
+		if e.response.status_code == 404:
+			raise InputException("El usuario no existe")
 
-	headers = {
-		"user": user,
-		"command": "forgive"
-	}
-
-	r = requests.post(url + "/admin", headers=headers)
-	try:
-		r.raise_for_status()
-	except requests.HTTPError as e:
-		if e.response.status_code == 400:
-		 	raise InputException(e.response.text)
-		else:
-			raise
+	user = session.query(Conversation_model).get(user_id)
+	if user.punishment_type != None:
+		user.punishment_type = None
+		user.punishment_end = None
+		session.commit()
+	else:
+		raise InputException("El usuario @{0} no está castigado".format(user))
 
 def identify_command(*args):
 	given_id = False
@@ -189,31 +202,29 @@ def identify_command(*args):
 	except IndexError:
 		raise InputException("Uso: identify <id/link del tweet>")
 	
-	for conver in data["conversations"]:
-		if tweet_id in conver["tweets"]:
-			print("El tweet fue publicado por @" + getusername(conver["user_id"])[0])
-			return
-	print("El tweet no fue publicado por un usuario conocido")
+	tweet = session.query(Tweet_model).get(tweet_id)
+	if tweet:
+		user_id = tweet.conversation.id
+		print("El tweet fue publicado por @{0}".format(getusername(user_id)[0]))
+	else:
+		print("El tweet no fue publicado por un usuario registrado")
 
-def getbotdata_command(*args):
-	path = "botdata.json"
+def deleteuser_command(*args):
 	try:
-		path = args[0]
+		user = args[0]
+		user_id = getuserid(user)[0]
 	except IndexError:
-		pass
-	if os.path.isfile(path):
-		while True:
-			decision = input("Ya existe el archivo, ¿Desea sobreescribirlo? (y/n): ")
-			if decision in ["si", "sí", "s", "y", "yes"]:
-				pass
-				break
-			elif decision in ["no", "n"]:
-				path = path.split(".")[0] + "_" + datetime.datetime.now().strftime("%H_%M_%S_%d_%m_%Y") + ".json"
-				break
+		raise InputException("Uso: deleteuser <usuario (@)>")
+	except requests.exceptions.HTTPError as e:
+		if e.response.status_code == 404:
+			raise InputException("El usuario no existe")
 
-	with open(path, "w") as f:
-		json.dump(data["conversations"], f, indent=4)
-
+	user_mod = session.query(Conversation_model).get(user_id)
+	if user_mod:
+		session.delete(user_mod)
+		session.commit()
+	else:
+		raise InputException("El usuario @{0} no está registrado".format(user))
 
 
 commands = {
@@ -222,12 +233,12 @@ commands = {
 	"ban": (ban_command, "Evita que un usuario twitee para siempre"),
 	"forgive": (forgive_command, "Elimina el castigo de un usuario"),
 	"identify": (identify_command, "Revela el autor de un tweet publicado"),
-	"getbotdata": (getbotdata_command, "Descarga el archivo de datos del bot"),
+	"deleteuser": (deleteuser_command, "Elimina un usuario de la base de datos"),
 	"exit": (exit_command, "Desconexión")
 }
 
 def main():
-	global data, url, bearer_token
+	global url, bearer_auth, database_url, base_engine, Session, session
 	file = False
 	print("CLIENTE COTILLEOS FÍSICA UGR")
 	try:
@@ -240,10 +251,34 @@ def main():
 			if change in ["si", "sí", "s", "y", "yes"]:
 				ask_url()
 			else:
-				r = requests.get(url + "/admin")
-				consumer = r.json()["credentials"]["consumer"]
-				consumer_secret = r.json()["credentials"]["consumer_secret"]
-				bearer_token = getbearertoken(consumer, consumer_secret)
+				firsttry = True
+				while True:
+					try:
+						if firsttry:
+							psw = input("Introduzca Contraseña de administrador: ")
+						else:
+							psw = input("Contraseña no válida vuelva a introducirla: ")
+						r = requests.get(url + "/admin", headers={"password": psw})
+						r.raise_for_status()
+						bearer_auth = bearer_auth_handler(r.json()["bearer_token"])
+						database_url = r.json()["database_url"]
+						with open(".boturl", "w") as f:
+							f.write(url)
+						engine = create_engine(database_url, echo=False)
+						Session = sessionmaker(bind=engine)
+						session = Session()
+						break
+					except json.decoder.JSONDecodeError:
+						url = input("La url no corresponde con ningún bot, vuelva a introducirla: ")
+					except KeyError:
+						url = input("La url no corresponde con ningún bot, vuelva a introducirla: ")
+					except requests.exceptions.HTTPError as e:
+						if e.response.status_code == 404:
+							url = input("La url no existe, vuelva a introducirla: ")
+						elif e.response.status_code == 400:
+							firsttry = False
+						else:
+							raise
 		else:
 			ask_url()
 
@@ -253,16 +288,12 @@ def main():
 			try:
 				inpt = input("cotilleosfugrbot~$ ")
 				inpt = inpt.split()
-				if inpt[0] != "exit":
-					r = requests.get(url + "/admin")
-					r.raise_for_status()
-					data = r.json()
 				try:
 					commands[inpt[0]][0](*tuple(inpt[1::]))
 				except KeyError:
 					print("Comandos disponibles:")
 					for command, value in commands.items():
-						print(command + "\t" + value[1])
+						print("   {0: <12}{1}".format(command, value[1]))
 				except IndexError:
 					pass
 				except InputException as e:
