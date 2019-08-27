@@ -8,9 +8,11 @@ DATABASE_URL = 'postgresql://%(user)s:%(pw)s@%(host)s:%(port)s/%(db)s' % {
 	"host": "",
 	"port": "5432" #Usual port
 } #Prepared for PostgrelSQL
-TWITTER_ENV_NAME = ""
+TWITTER_ENV_NAME = "chatbot"
 MAX_TWEETS_PER_HOUR = 5
 ADMIN_PASS = ""
+SPAM_NEGATIVE_LIMIT = -0.85
+SCORE_ZERO_ERROR = 0
 
 if "APP_URL" in os.environ:
 	APP_URL = os.environ.get("APP_URL")
@@ -22,3 +24,7 @@ if "DATABASE_URL" in os.environ:
 	DATABASE_URL = os.environ.get("DATABASE_URL")
 if "ADMIN_PASS" in os.environ:
 	ADMIN_PASS = os.environ.get("ADMIN_PASS")
+if "SPAM_NEGATIVE_LIMIT" in os.environ:
+	SPAM_NEGATIVE_LIMIT = os.environ.get("SPAM_NEGATIVE_LIMIT")
+if "SCORE_ZERO_ERROR" in os.environ:
+	SCORE_ZERO_ERROR = os.environ.get("SCORE_ZERO_ERROR")

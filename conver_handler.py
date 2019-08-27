@@ -2,7 +2,7 @@ import api_handler as api
 import datetime
 import threading
 from time import sleep
-from config import MAX_TWEETS_PER_HOUR
+from config import MAX_TWEETS_PER_HOUR, SCORE_ZERO_ERROR
 from spamfilter import is_inapropiate
 
 class ConverError(BaseException):
@@ -181,7 +181,7 @@ class conversation:
 			raise ConverError("Sólo se permiten enviar tweets sin texto si estos contienen archivos adjuntos")
 		elif text_rate[0]:
 			raise ConverError("El tweet que deseas enviar es inapropiado")
-		elif text_rate[1] == 0:
+		elif text_rate[1] == 0 and SCORE_ZERO_ERROR:
 			raise ConverError("El texto no tiene sentido")
 		else:
 			tweet = api.tweet.create(self.currtweettext)

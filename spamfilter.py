@@ -1,9 +1,9 @@
 from Auths import ibm_key, ibm_language_url
+from config import SPAM_NEGATIVE_LIMIT
 from ibm_watson import NaturalLanguageUnderstandingV1
 from ibm_watson.natural_language_understanding_v1 import Features, SentimentOptions, KeywordsOptions
 import json
 
-negative_limit = -0.8
 
 text_understanding = NaturalLanguageUnderstandingV1(
 	version = "2019-07-12",
@@ -18,7 +18,7 @@ def is_inapropiate(text, lang="es"):
 		features = Features(sentiment=SentimentOptions(document=True))
 	).get_result()
 	sentiment = response["sentiment"]["document"]["score"]
-	if sentiment <= negative_limit:
+	if sentiment <= SPAM_NEGATIVE_LIMIT:
 		return (True, sentiment)
 	else: return (False, sentiment)
 
