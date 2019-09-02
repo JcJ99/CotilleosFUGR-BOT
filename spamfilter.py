@@ -18,7 +18,7 @@ def is_inapropiate(text, lang="es"):
 		features = Features(sentiment=SentimentOptions(document=True))
 	).get_result()
 	sentiment = response["sentiment"]["document"]["score"]
-	if sentiment <= int(SPAM_NEGATIVE_LIMIT):
+	if sentiment <= float(SPAM_NEGATIVE_LIMIT):
 		return (True, sentiment)
 	else: return (False, sentiment)
 

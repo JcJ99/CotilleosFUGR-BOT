@@ -1,4 +1,5 @@
 __pycache__/
 attachments/
 migrations/
+env/
 .boturl
