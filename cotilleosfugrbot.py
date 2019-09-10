@@ -76,7 +76,7 @@ class regthread(threading.Thread):
 			app.logger.critical("Aplicación registrada correctamente en Twitter con id: " + appid)
 			subcribeforaccount()
 			app.logger.critical("Recibiendo eventos del entorno: " + TWITTER_ENV_NAME)
-			#welcomemsg.setaswelcomemsg()
+			welcomemsg.setaswelcomemsg()
 			app.logger.critical("Mensaje de bienvenida establecido")
 			self.registered = True
 		except requests.HTTPError:
@@ -297,10 +297,10 @@ def admin_ban(index, *args):
 	try:
 		user_id = args[0]
 	except IndexError:
-		conversations[index].notify("Uso: ban <usuario (@)>", critical=True)
+		conversations[index].notify("Uso: ban <Link/Id del tweet>", critical=True)
 		return
 	except ValueError:
-		conversations[index].notify("Uso: ban <usuario (@)>", critical=True)
+		conversations[index].notify("Uso: ban <Link/Id del tweet>", critical=True)
 		return
 	except requests.exceptions.HTTPError as e:
 		if e.response.status_code == 404:
@@ -324,10 +324,10 @@ def admin_timeout(index, *args):
 		days = args[1]
 		days = int(days)
 	except IndexError:
-		conversations[index].notify("Uso: timeout <usuario (@)> <dias (Nº Entero)>", critical=True)
+		conversations[index].notify("Uso: timeout <Link/Id del tweet> <dias (Nº Entero)>", critical=True)
 		return
 	except ValueError:
-		conversations[index].notify("Uso: timeout <usuario (@)> <dias (Nº Entero)>", critical=True)
+		conversations[index].notify("Uso: timeout <Link/Id del tweet> <dias (Nº Entero)>", critical=True)
 		return
 	except requests.exceptions.HTTPError as e:
 		if e.response.status_code == 404:
@@ -452,12 +452,12 @@ if __name__ == "__main__":
 		reg.start()
 		app.run(host="0.0.0.0",port=port)
 	except KeyboardInterrupt:
-		#cleanwelcomemsg()
+		cleanwelcomemsg()
 		pass
 	except SIGTERM:
-		#cleanwelcomemsg()
+		cleanwelcomemsg()
 		pass
 	finally:
 		app.logger.warning("Saliendo...")
-		#cleanwelcomemsg()
+		cleanwelcomemsg()
 		webhookunregister(appid)
