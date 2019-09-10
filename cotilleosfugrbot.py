@@ -37,6 +37,7 @@ class Conversation_model(db.Model):
 	creation_date = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now())
 	punishment_type = db.Column(db.String(7), default=None)
 	punishment_end = db.Column(db.DateTime, default=None)
+	admin = db.Column(db.Boolean, default=False)
 
 	def __repr__(self):
 		return "<Conversation: %r>" % self.id
@@ -75,7 +76,7 @@ class regthread(threading.Thread):
 			app.logger.critical("Aplicación registrada correctamente en Twitter con id: " + appid)
 			subcribeforaccount()
 			app.logger.critical("Recibiendo eventos del entorno: " + TWITTER_ENV_NAME)
-			welcomemsg.setaswelcomemsg()
+			#welcomemsg.setaswelcomemsg()
 			app.logger.critical("Mensaje de bienvenida establecido")
 			self.registered = True
 		except requests.HTTPError:
@@ -218,10 +219,34 @@ def associate(jsondata):
 				conversations.append(conv.conversation(msg.sid()))
 				conversations[len(conversations) - 1].read(msg)
 			else:
-				if conversations[index].read(msg):
-					#If send command received
-					t = databaseupdaterthread(conversations[index])
-					t.start()
+				if msg.rawtext()[0] == "/":
+					if conversations[index].isadmin:
+						switcher = {
+							"ban": admin_ban,
+							"timeout": admin_timeout
+						}
+						command = msg.rawtext()[1::].split()
+						if len(command) < 2:
+							command.append(None)
+						if "t.co" in command[1].split("/"):
+							command[1] = msg.url()
+						user = admin_identify(index, *tuple(command[1::]))
+						if user:
+							if user != -1:
+								command[1] = user
+								switcher[command[0]](index, *tuple(command[1::]))
+							else:
+								if command[0] in switcher.keys():
+									conversations[index].notify("Introduce el link de un tweet para aplicar el comando", critical=True)
+								else:
+									conversations[index].notify("Comandos disponibles:\n	\u2022	ban <Link/Id del tweet>\n	\u2022	timeout <Link/Id del tweet> <Días>")
+					else:
+						conversations[index].notify("No tienes permisos de administrador para ejecutar comandos", critical=True)
+				else:
+					if conversations[index].read(msg):
+						#If send command received
+						t = databaseupdaterthread(conversations[index])
+						t.start()
 
 		elif typ == "fav":
 			if index == None:
@@ -267,6 +292,83 @@ def associate(jsondata):
 				conversations[index].notify(text, link)
 				if not conversations[index].editingtweets:
 					del conversations[index]
+
+def admin_ban(index, *args):
+	try:
+		user_id = args[0]
+	except IndexError:
+		conversations[index].notify("Uso: ban <usuario (@)>", critical=True)
+		return
+	except ValueError:
+		conversations[index].notify("Uso: ban <usuario (@)>", critical=True)
+		return
+	except requests.exceptions.HTTPError as e:
+		if e.response.status_code == 404:
+			conversations[index].notify("El usuario no existe", critical=True)
+			return
+
+	user = Conversation_model.query.get(user_id)
+	if user:
+		user.punishment_type = "ban"
+		db.session.commit()
+	else:
+		user = Conversation_model(id=user_id, punishment_type="ban")
+		db.session.add(user)
+		db.session.commit()
+	
+	conversations[index].notify("Usuario castigado correctamente", critical=True)
+
+def admin_timeout(index, *args):
+	try:
+		user_id = args[0]
+		days = args[1]
+		days = int(days)
+	except IndexError:
+		conversations[index].notify("Uso: timeout <usuario (@)> <dias (Nº Entero)>", critical=True)
+		return
+	except ValueError:
+		conversations[index].notify("Uso: timeout <usuario (@)> <dias (Nº Entero)>", critical=True)
+		return
+	except requests.exceptions.HTTPError as e:
+		if e.response.status_code == 404:
+			conversations[index].notify("El usuario no existe", critical=True)
+			return
+
+	user = Conversation_model.query.get(user_id)
+	if user:
+		user.punishment_type = "timeout"
+		user.punishment_end = datetime.datetime.utcnow() + datetime.timedelta(days=days)
+		db.session.commit()
+	else:
+		user = Conversation_model(id=user_id, punishment_type="timeout", punishment_end=datetime.datetime.utcnow() + datetime.timedelta(days=days))
+		db.session.add(user)
+		db.session.commit()
+	
+	conversations[index].notify("Usuario castigado correctamente", critical=True)
+
+def admin_identify(index, *args):
+	command_input = args[0]
+	try:
+		tweet_id = int(command_input)
+	except ValueError:
+		splitted = command_input.split("/")
+		if "twitter.com" in splitted:
+			if "https:" in splitted:
+				tweet_id = int(splitted[5])
+			else:
+				tweet_id = int(splitted[3])
+		else:
+			conversations[index].notify("Link no válido", critical=True)
+			return
+	except TypeError:
+		raise
+	
+	tweet = Tweet_model.query.get(tweet_id)
+	if tweet:
+		user_id = tweet.conversation.id
+		return user_id
+	else:
+		return
 
 def update_database(conver):
 	global conversations
@@ -350,12 +452,12 @@ if __name__ == "__main__":
 		reg.start()
 		app.run(host="0.0.0.0",port=port)
 	except KeyboardInterrupt:
-		cleanwelcomemsg()
+		#cleanwelcomemsg()
 		pass
 	except SIGTERM:
-		cleanwelcomemsg()
+		#cleanwelcomemsg()
 		pass
 	finally:
 		app.logger.warning("Saliendo...")
-		cleanwelcomemsg()
+		#cleanwelcomemsg()
 		webhookunregister(appid)

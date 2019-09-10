@@ -11,7 +11,7 @@ class ConverError(BaseException):
 		self.critical = critical
 
 class conversation:
-	def __init__(self, user_id, tweets=[], creationdate=datetime.datetime.utcnow(), punishment=None):
+	def __init__(self, user_id, tweets=[], creationdate=datetime.datetime.utcnow(), punishment=None, isadmin=False):
 		self.user_id = user_id
 		self.tweets = tweets
 		self.tweetstopost = []
@@ -24,6 +24,7 @@ class conversation:
 		self.thread = threading.Thread(target=self.queue)
 		self.punishment = punishment
 		self.creationdate = creationdate
+		self.isadmin = isadmin
 
 	@classmethod
 	def from_model(cls, model):
@@ -35,7 +36,7 @@ class conversation:
 			punishment = ("ban", None)
 		else:
 			punishment = None
-		return cls(str(model.id), tweets=tweets, creationdate=model.creation_date, punishment=punishment)
+		return cls(str(model.id), tweets=tweets, creationdate=model.creation_date, punishment=punishment, isadmin=model.admin)
 
 	def queue(self):
 		while not len(self.taskqueue) == 0:
@@ -323,14 +324,16 @@ class conversation:
 			self.addcancelbutton()
 			self.response.post()
 
-	def notify(self, text, link, replylink=None):
+	def notify(self, text, link=None, critical=False):
 		noti = api.msg.create(self.user_id, text)
 		notilink = api.msg.create(self.user_id, link)
-		if not self.editingtweets():
-			notilink.post()
+		if not self.editingtweets() or critical:
+			if link:
+				notilink.post()
 			noti.post()
 		else:
-			self.pendingnot.append(notilink)
+			if link:
+				self.pendingnot.append(notilink)
 			self.pendingnot.append(noti)
 
 	def editingtweets(self):

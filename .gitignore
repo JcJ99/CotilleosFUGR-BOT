@@ -1,5 +1,6 @@
 __pycache__/
 attachments/
 migrations/
+.vscode/
 env/
 .boturl

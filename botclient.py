@@ -7,7 +7,7 @@ import datetime
 import sys
 import pip
 from contextlib import contextmanager
-from sqlalchemy import create_engine, Column, DateTime, BigInteger, String, case, ForeignKey
+from sqlalchemy import create_engine, Column, DateTime, BigInteger, String, case, ForeignKey, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 
@@ -26,6 +26,7 @@ class Conversation_model(Base):
 	creation_date = Column(DateTime, nullable=False, default=datetime.datetime.now())
 	punishment_type = Column(String(7), default=None)
 	punishment_end = Column(DateTime, default=None)
+	admin = Column(Boolean, default=False)
 
 	def __repr__(self):
 		return "<Conversation: %r>" % self.id
@@ -114,7 +115,7 @@ def list_command(*args):
 				punishment_end = conv.punishment_end.strftime("%H:%M:%S %d/%m/%Y")
 			else:
 				punishment_end = None
-			output = "@{0: <20} id: {1: <20} castigo: {2: <7} hasta: {3}".format(users_name[i], conv.id, str(conv.punishment_type), str(punishment_end))
+			output = "@{0: <20} id: {1: <20} admin: {2}\tcastigo: {3: <7} hasta: {4}".format(users_name[i], conv.id, conv.admin ,str(conv.punishment_type), str(punishment_end))
 			print(output)
 	else:
 		print("Ningún usuario en el registro")
@@ -139,7 +140,7 @@ def timeout_command(*args):
 	user = session.query(Conversation_model).get(user_id)
 	if user:
 		user.punishment_type = "timeout"
-		user.punishment_end = datetime.datetime.utcnow() + datetime.timedelta(days=1)
+		user.punishment_end = datetime.datetime.utcnow() + datetime.timedelta(days=days)
 		session.commit()
 	else:
 		user = Conversation_model(id=user_id, punishment_type="timeout", punishment_end=datetime.datetime.utcnow() + datetime.timedelta(days=days))
@@ -186,7 +187,6 @@ def forgive_command(*args):
 		raise InputException("El usuario @{0} no está castigado".format(user))
 
 def identify_command(*args):
-	given_id = False
 	command_input = args[0]
 	try:
 		tweet_id = int(command_input)
@@ -226,6 +226,29 @@ def deleteuser_command(*args):
 	else:
 		raise InputException("El usuario @{0} no está registrado".format(user))
 
+def admin_command(*args):
+	try:
+		user = args[0]
+		user_id = getuserid(user)[0]
+	except IndexError:
+		raise InputException("Uso: admin <usuario (@)>")
+	except ValueError:
+		raise InputException("Uso: admin <usuario (@)>")
+	except requests.exceptions.HTTPError as e:
+		if e.response.status_code == 404:
+			raise InputException("El usuario no existe")
+
+	user = session.query(Conversation_model).get(user_id)
+	if user:
+		if user.admin:
+			user.admin = False
+		else:
+			user.admin = True
+		session.commit()
+	else:
+		user = Conversation_model(id=user_id, admin=True)
+		session.add(user)
+		session.commit()
 
 commands = {
 	"list": (list_command, "Muestra los usuarios reconocidos por el bot"),
@@ -234,6 +257,7 @@ commands = {
 	"forgive": (forgive_command, "Elimina el castigo de un usuario"),
 	"identify": (identify_command, "Revela el autor de un tweet publicado"),
 	"deleteuser": (deleteuser_command, "Elimina un usuario de la base de datos"),
+	"admin": (admin_command, "Otorga o revoca permisos de administrador a un usuario"),
 	"exit": (exit_command, "Desconexión")
 }
 
