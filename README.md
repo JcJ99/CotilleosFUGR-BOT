@@ -75,9 +75,15 @@ Estas se pueden introucir en el archivo Auths.py en forma de string o pueden ser
 ```Python
 "CONSUMER_KEY", "CONSUMER_SECRET_KEY", "TOKEN_KEY", "TOKEN_SECRET_KEY"
 ```
+6. Configurar base de datos
 
+Realiza la migración de la base de datos con el comando:
 
-6. Basta ya con iniciar la aplicación utilizando gunicorn:
+```Pyhton
+pyhton manage.py db init && pyhton manage.py db migrate && pyhton manage.py db upgrade
+```
+
+7. Iniciar la aplicación utilizando gunicorn:
 
 ```bash
 gunicorn wsgi
