@@ -228,8 +228,11 @@ def associate(jsondata):
 						command = msg.rawtext()[1::].split()
 						if len(command) < 2:
 							command.append(None)
-						if "t.co" in command[1].split("/"):
-							command[1] = msg.url()
+						try:
+							if "t.co" in command[1].split("/"):
+								command[1] = msg.url()
+						except AttributeError:
+							pass
 						user = admin_identify(index, *tuple(command[1::]))
 						if user:
 							if user != -1:

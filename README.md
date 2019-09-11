@@ -4,34 +4,47 @@
 
 ## Guía del usuario
 
-Publicar un tweet utilizando este bot es extremadamente sencillo, basta con enviar el texto del tweet a publicar a través mensaje privado a la cuenta @CotilleosFUGR. El bot te contestará con un mensaje con todas las acciones posibles en forma de botones interactivos. El uso de estos botones ni siquiera es obligatorio pues el bot es capaz de reconocer si se le ha enviado un link, una foto, simple texto o varias cosas a la vez y responder en consecuencia. 
-Esta forma amigable de interactuar con el usuario permite símplemente seguir los pasos que se muestran en pantalla para publicar un tweet, sin embargo a continuación se explica como realizar todas las acciones que permite llevar a cabo este bot
-
 ### Publicar un tweet sólo con texto
 
-Para publicar un tweet que no cite a otro ni cuente con archivos adjuntos basta con enviar un mensaje con el texto que desea publicarse. En caso de que existan erratas en el texto basta con mandar otro mensaje con el texto corregido. Una vez el texto sea  el correcto pulse el botón "Enviar tweet".
+Para publicar un tweet que no cite a otro ni cuente con archivos adjuntos basta con enviar un mensaje con el texto que desea publicarse. En caso de que existan erratas en el texto basta con mandar otro mensaje con el texto corregido. Una vez el texto sea  el correcto pulse el botón _Enviar tweet_.
+
+**FOTO**
+
+### Adjuntar un archivo en el tweet
+
+Envía archivos de uno en uno para adjuntarlos en el tweet. Es posible adjuntar hasta un máximo de 4 fotos, 1 vídeo o un gif. No es posible combinar diferentes tipos de archivos.
+
+**FOTO**
+
+### Citar un tweet
+
+Para citar un tweet basta con enviar el link del mismo, no es posible citar tweets sin introducir texto
+
+**FOTO**
+
+### Publicar un hilo
+
+Edita los tweets uno a uno y pulsa _Añadir tweet al hilo_ para pasar a editar el siguente
 
 ## Set-Up
 
-Esta aplicación está preparada para trabajar en un PC, siendo esta totalmente portable o en el servicio de Hosting de aplicaciones web Heroku. Para configurar esta aplicación se han de seguir los siguientes pasos:
-
 1. Clonar el código desde este repositorio
 
-```
+```bash
 git clone https://github.com/JcJ99/CotilleosFUGR-BOT.git
 ```
 
-**Si estás trabajando en un PC** se han de instalar una serie de librerías. Para ello usar el comando:
+2. Instala las librerías necesarias
 
-```
+```bash
 sudo pip install -r requirements.txt
 ``` 
 
-2. Editar el archivo config.py
+3. Editar el archivo config.py
 
-**Si la aplicación se aloja en Heroku** Es necesario introducir la variable APP_URL. El valor de esta debe ser la url en la que trabajará la aplicación. Si se trabaja en un PC esta va a ser ignorada
+Introduce en la variable APP_URL el link en el que está funcionando el bot
 
-```
+```Python
 APP_URL = "https://xxxxx.herokuapp.com"
 ```
 
@@ -39,26 +52,33 @@ La variable **TWITTER_ENV_NAME** es el nombre del entorno de la aplicación regi
 
 Puede cambiar el número máximo de tweets que un usuario puede enviar en una hora ajustando la variable **MAX_TWEETS_PER_HOUR**
 
-3. Introducir keys de autenticación de la api de twitter
+Introduzce la URI de una base de datos en la que el bot guardará ls ids de los usuario del bot así como las ids de los tweets publicados en la variable DATABASE_URL. Si para la base de datos usas PostgrelSQL rellena los campos, _user, pw..._ en caso contrario introduce la url de tu base de datos. Recuerda crear un usuario asociado al bot en la base de datos.
+
+Ajusta el límite de puntuación negativa del filtro de spam con un valor entre 0 y -1. Siendo cero el más estricto. Se recomienda un valor de -0.85
+
+Apaga o enciende el detector de texto sin sentido asignando los valores 0 o 1 a la variable SCORE_ZERO_ERROR, se recomienda que se mantenga apagada para evitar falsos positivos.
+
+Todas estas configuraciones pueden ser ajustadas desde variables de entorno.
+
+4. Introducir claves del servicio IBM Natural Languaje Understanding
+
+El bot hace uso de este servicio para el fitro de Spam https://www.ibm.com/watson/services/natural-language-understanding/. Es necesario crear una cuenta y obtener una clave para su uso.
+
+Introduce la url de la región de servicio deseada en la variable ibm_language_url y la clave en la variable ibm_key en el archivo Auths.py
+
+Todas estas configuraciones pueden ser ajustadas desde variables de entorno.
+
+5. Introducir keys de autenticación de la api de twitter
 
 Estas se pueden introucir en el archivo Auths.py en forma de string o pueden ser añadidas como variables de entorno con los nombres:
 
-```
+```Python
 "CONSUMER_KEY", "CONSUMER_SECRET_KEY", "TOKEN_KEY", "TOKEN_SECRET_KEY"
 ```
 
-**NOTA**: Las variables de entorno se han de crear en el servidor de Heroku en caso de estar la aplicación alojada allí
 
-4. **Si estás trabajando en un PC** basta ya con iniciar la aplicación utilizando Python 3.7:
+6. Basta ya con iniciar la aplicación utilizando gunicorn:
 
+```bash
+gunicorn wsgi
 ```
-python3 cotilleosfugrbot.py
-```
-
-**Si la aplicación se aloja en Heroku** has de crear ahora la aplicación en el sitio web de Heroku y crear la variable de entorno en el servidor:
-
-```
-ONHEROKU=1
-```
-
-Después basta con subir **todos** los archivos descargados inicialmente y modificados en el proceso de configuración al servidor de Heroku
