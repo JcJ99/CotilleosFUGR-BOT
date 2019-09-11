@@ -8,19 +8,19 @@
 
 Para publicar un tweet que no cite a otro ni cuente con archivos adjuntos basta con enviar un mensaje con el texto que desea publicarse. En caso de que existan erratas en el texto basta con mandar otro mensaje con el texto corregido. Una vez el texto sea  el correcto pulse el botón _Enviar tweet_.
 
-**FOTO**
+![alt text](https://raw.githubusercontent.com/JcJ99/CotilleosFUGR-BOT/master/readme_files/mensaje%20s%C3%B3lo%20con%20texto.png)
 
 ### Adjuntar un archivo en el tweet
 
 Envía archivos de uno en uno para adjuntarlos en el tweet. Es posible adjuntar hasta un máximo de 4 fotos, 1 vídeo o un gif. No es posible combinar diferentes tipos de archivos.
 
-**FOTO**
+![alt text](https://raw.githubusercontent.com/JcJ99/CotilleosFUGR-BOT/master/readme_files/mensaje%20con%20foto.png)
 
 ### Citar un tweet
 
 Para citar un tweet basta con enviar el link del mismo, no es posible citar tweets sin introducir texto
 
-**FOTO**
+![alt text](https://raw.githubusercontent.com/JcJ99/CotilleosFUGR-BOT/master/readme_files/mensaje%20con%20cita.png)
 
 ### Publicar un hilo
 
