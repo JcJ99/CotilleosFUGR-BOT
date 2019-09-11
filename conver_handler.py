@@ -182,7 +182,7 @@ class conversation:
 			raise ConverError("Sólo se permiten enviar tweets sin texto si estos contienen archivos adjuntos")
 		elif text_rate[0]:
 			raise ConverError("El tweet que deseas enviar es inapropiado")
-		elif text_rate[1] == 0 and SCORE_ZERO_ERROR:
+		elif text_rate[1] == 0 and int(SCORE_ZERO_ERROR):
 			raise ConverError("El texto no tiene sentido")
 		else:
 			tweet = api.tweet.create(self.currtweettext)
