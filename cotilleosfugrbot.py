@@ -76,7 +76,7 @@ class regthread(threading.Thread):
 			app.logger.critical("Aplicación registrada correctamente en Twitter con id: " + appid)
 			subcribeforaccount()
 			app.logger.critical("Recibiendo eventos del entorno: " + TWITTER_ENV_NAME)
-			welcomemsg.setaswelcomemsg()
+			#welcomemsg.setaswelcomemsg()
 			app.logger.critical("Mensaje de bienvenida establecido")
 			self.registered = True
 		except requests.HTTPError:
@@ -402,7 +402,6 @@ def cleanconvers():
 			db.session.delete(c)
 		else:
 			db.session.delete(c)
-	db.session.commit()
 	for i,conversation in enumerate(conversations):
 		try:
 			if not conversation.editingtweets():
@@ -455,12 +454,12 @@ if __name__ == "__main__":
 		reg.start()
 		app.run(host="0.0.0.0",port=port)
 	except KeyboardInterrupt:
-		cleanwelcomemsg()
+		#cleanwelcomemsg()
 		pass
 	except SIGTERM:
-		cleanwelcomemsg()
+		#cleanwelcomemsg()
 		pass
 	finally:
 		app.logger.warning("Saliendo...")
-		cleanwelcomemsg()
+		#cleanwelcomemsg()
 		webhookunregister(appid)
