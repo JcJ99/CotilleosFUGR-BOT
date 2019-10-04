@@ -56,7 +56,7 @@ class conversation:
 	def send(self):
 		spamming = False
 		try:
-			delta = datetime.datetime.utcnow() - self.tweets[len(self.tweets)-MAX_TWEETS_PER_HOUR-2][1]
+			delta = datetime.datetime.utcnow() - self.tweets[len(self.tweets)-MAX_TWEETS_PER_HOUR-1][1]
 			if delta < datetime.timedelta(hours=1):
 				spamming = True
 		except IndexError:
@@ -144,7 +144,7 @@ class conversation:
 	def addtweet(self):
 		spamming = False
 		try:
-			delta = datetime.datetime.utcnow() - self.tweets[len(self.tweets)-MAX_TWEETS_PER_HOUR-2][1]
+			delta = datetime.datetime.utcnow() - self.tweets[len(self.tweets)-MAX_TWEETS_PER_HOUR-1][1]
 			if delta < datetime.timedelta(hours=1):
 				spamming = True
 		except IndexError:

@@ -398,10 +398,9 @@ def cleanconvers():
 	minimum_date = datetime.datetime.now() - datetime.timedelta(days=14)
 	con = Conversation_model.query.filter(Conversation_model.creation_date < minimum_date, Conversation_model.punishment_type not in ["ban"]).all()
 	for c in con:
-		if c.punishment_type and c.punishment_end < datetime.datetime.now():
+		if not c.punishment_type and c.punishment_end < datetime.datetime.now():
 			db.session.delete(c)
-		else:
-			db.session.delete(c)
+		db.session.commit()
 	for i,conversation in enumerate(conversations):
 		try:
 			if not conversation.editingtweets():
