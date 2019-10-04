@@ -63,7 +63,7 @@ class conversation:
 			pass
 		if spamming:
 			timefortweeting = self.tweets[len(self.tweets)-6][1] + datetime.timedelta(hours=1)
-			raise ConverError("Has superado el límite de 5 tweets por hora, podrás volver a twittear a las " + timefortweeting.strftime("%X"))
+			raise ConverError("Has superado el límite de 5 tweets por hora, podrás volver a twittear a las " + (timefortweeting + datetime.timedelta(hours=2)).strftime("%X"))
 		if self.punishment:
 			if self.punishment[0] == "timeout":
 				if self.punishment[1] < datetime.datetime.utcnow():
@@ -151,7 +151,7 @@ class conversation:
 			pass
 		if spamming:
 			timefortweeting = self.tweets[len(self.tweets)-6][1] + datetime.timedelta(hours=1)
-			raise ConverError("Has superado el límite de 5 tweets por hora, podrás añadir otro tweet al hilo a las " + timefortweeting.strftime("%X"))
+			raise ConverError("Has superado el límite de 5 tweets por hora, podrás añadir otro tweet al hilo a las " + (timefortweeting + datetime.timedelta(hours=2)).strftime("%X"))
 		else:
 			self.endtweetedit()
 			self.response = api.msg.create(self.user_id, "Envía texto, archivo adjuntos o links de tweets para el nuevo tweet del hilo")

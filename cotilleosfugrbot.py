@@ -5,7 +5,7 @@ import requests
 from api_handler import msgauth
 import sys
 import threading
-from time import sleep
+from time import sleep, tzset
 import datetime
 from Auths import *
 import base64
@@ -29,6 +29,7 @@ conversations = []
 welcomemsg = api.msg.create(None, welcomemsgtext)
 if APP_URL != "" and APP_URL[len(APP_URL)-1] == "/":
 	APP_URL = APP_URL[:len(url)-1]
+tzset()
 
 class Conversation_model(db.Model):
 	__tablename__ = "conversations"
