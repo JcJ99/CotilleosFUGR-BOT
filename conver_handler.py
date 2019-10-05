@@ -284,7 +284,7 @@ class conversation:
 		else:
 			responsetext += self.currtweettext + "\n"
 		if len(self.currtweetattachments) > 1:
-			responsetext += "Con " + str(tweet.numattachments()) + " fotos adjuntas\n"
+			responsetext += "Con " + str(len(self.currtweetattachments)) + " fotos adjuntas\n"
 		elif len(self.currtweetattachments) == 1:
 			if self.currtweetattachments[0].type == "video":
 				responsetext += "Con 1 vídeo adjunto\n"
