@@ -175,7 +175,10 @@ class conversation:
 		if self.currtweetquote == None: self.currtweetquote = ""
 
 	def endtweetedit(self):
-		text_rate = is_inapropiate(self.currtweettext)
+		if self.currtweettext:
+			text_rate = is_inapropiate(self.currtweettext)
+		else:
+			text_rate = 1
 		if len(self.currtweettext) > 280:
 			raise ConverError(f"El tweet contiene más de 280 carácteres ({len(self.currtweettext)})")
 		elif (self.currtweettext == "" or self.currtweettext.isspace()) and len(self.currtweetattachments)==0:
