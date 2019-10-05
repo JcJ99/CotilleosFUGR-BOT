@@ -335,7 +335,7 @@ class tweet:
 	def attach(self, attachm):
 		gid = attachm.upload("tweet")[0]
 		if type(self.data["media_ids"]) is list:
-			if len(self.data["media_ids"]) is 4:
+			if len(self.data["media_ids"]) == 4:
 				raise FullAttachmentException("No se pueden adjuntar más de 4 fotos")
 			if attachm.type is not "photo":
 				raise FullAttachmentException("No se puden adjuntar fotos juntos a un vídeo/gif")
@@ -343,9 +343,9 @@ class tweet:
 				self.data["media_ids"].append(gid)
 		if type(self.data["media_ids"]) is int:
 			raise FullAttachmentException("Únicamente se puede ajuntar un vídeo/gif")
-		if (self.data["media_ids"] is None) and (attachm.type is "photo"):
+		if (self.data["media_ids"] is None) and (attachm.type == "photo"):
 			self.data["media_ids"] = [gid]
-		if (self.data["media_ids"] is None) and not (attachm.type is "photo"):
+		if (self.data["media_ids"] is None) and not (attachm.type == "photo"):
 			self.data["media_ids"] = gid
 
 	def rmattach(self, index=-1):
