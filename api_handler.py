@@ -337,7 +337,7 @@ class tweet:
 		if type(self.data["media_ids"]) is list:
 			if len(self.data["media_ids"]) == 4:
 				raise FullAttachmentException("No se pueden adjuntar más de 4 fotos")
-			if attachm.type is not "photo":
+			if attachm.type != "photo":
 				raise FullAttachmentException("No se puden adjuntar fotos juntos a un vídeo/gif")
 			else:
 				self.data["media_ids"].append(gid)
