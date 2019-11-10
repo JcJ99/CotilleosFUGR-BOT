@@ -252,7 +252,7 @@ def associate(jsondata):
 						t = databaseupdaterthread(conversations[index])
 						t.start()
 
-		elif typ == "fav":
+		"""elif typ == "fav":
 			if index == None:
 				pass
 			else:
@@ -295,7 +295,7 @@ def associate(jsondata):
 				text = "@" + user + " ha respondido a tu tweet"
 				conversations[index].notify(text, link)
 				if not conversations[index].editingtweets:
-					del conversations[index]
+					del conversations[index]"""
 
 def admin_ban(index, *args):
 	try:
