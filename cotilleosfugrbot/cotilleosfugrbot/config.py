@@ -1,17 +1,11 @@
 import os
 
-APP_URL = "" #HTTPS URL
-DATABASE_URL = 'postgresql://%(user)s:%(pw)s@%(host)s:%(port)s/%(db)s' % {
-	"user": "",
-	"pw": "",
-	"db": "",
-	"host": "",
-	"port": "5432" #Usual port
-} #Prepared for PostgrelSQL
-TWITTER_ENV_NAME = "chatbot"
+APP_URL = "https://493167d3.ngrok.io" #HTTPS URL
+DATABASE_URL = "postgres://gbzirvnrqtykdz:4a44c3903c9637f20647b0b25bc1959a6e6238d6d69d305ea9500546bbd7f56b@ec2-54-75-249-16.eu-west-1.compute.amazonaws.com:5432/d85ah1um8lrfjn"
+TWITTER_ENV_NAME = "testingchatbot"
 MAX_TWEETS_PER_HOUR = 5
 ADMIN_PASS = ""
-SPAM_NEGATIVE_LIMIT = -0.85
+SPAM_NEGATIVE_LIMIT = -1
 SCORE_ZERO_ERROR = 0
 
 if "APP_URL" in os.environ:
