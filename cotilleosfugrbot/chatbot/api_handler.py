@@ -1,5 +1,5 @@
 import requests
-from Auths import *
+from .Auths import *
 from requests_oauthlib import OAuth1
 import os
 import sys
@@ -369,11 +369,11 @@ class tweet:
 			except TypeError:
 				return 1
 
-	def quote(self, link):
-		self.data["attachment_url"] = link
-
-	def getquote(self):
-		return self.data["attachment_url"]
+	def quote(self, link=None):
+		if link:
+			self.data["attachment_url"] = link
+		else:
+			return self.data["attachment_url"]
 
 	def rmquote(self):
 		self.data["attachment_url"] = None
