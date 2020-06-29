@@ -1,6 +1,9 @@
 from . import api_handler as api
 from . import conver_handler as conv
 from .models import User, Tweet
+import logging
+
+logger = logging.getLogger(__name__)
 
 conversations = []
 
@@ -16,6 +19,8 @@ def identify(jsondata):
 			return "quote"
 		elif "in_reply_to_status_id" != None:
 			return "reply"
+	elif "tweet_delete_events" in jsondata.keys():
+		return "del"
 	else:
 		return None
 
@@ -34,11 +39,11 @@ def knownuser(jsondata):
 		if not user:
 			return None
 		else:
-			conversations.append(conv.conversation.from_model(user))
+			conversations.append(conv.conversation.from_model(user[0]))
 			return len(conversations) - 1
 	if typ == "fav":
 		tid = jsondata["favorite_events"][0]["favorited_status"]["id"]
-		twt = Tweet.objects.filter(id=int(tid))
+		twt = Tweet.objects.filter(id=int(tid))[0]
 		if not twt:
 			return None
 		else:
@@ -52,7 +57,7 @@ def knownuser(jsondata):
 	if typ in ["rt", "quote", "reply"]:
 		if typ == "quote":
 			tid = jsondata["tweet_create_events"][0]["quoted_status_id"]
-			twt = Tweet.objects.filter(id=int(tid))
+			twt = Tweet.objects.filter(id=int(tid))[0]
 			if not twt:
 				return None
 			else:
@@ -75,8 +80,10 @@ def knownuser(jsondata):
 			if not user:
 				return None
 			else:
-				conversations.append(conv.conversation.from_model(user))
+				conversations.append(conv.conversation.from_model(user[0]))
 				return len(conversations) - 1
+	if typ == "del":
+		return None
 
 def associate(jsondata):
 	typ = identify(jsondata)
@@ -128,8 +135,6 @@ def associate(jsondata):
 				link = "https://twitter.com/" + api.selfscreenname + "/status/" + fav["favorited_status"]["id_str"]
 				text = "A @" + user + " le ha gustado tu tweet"
 				conversations[index].notify(text, link)
-				if not conversations[index].editingtweets:
-					conversations.pop(index)
 		elif typ == "rt":
 			if index == None:
 				pass
@@ -139,8 +144,6 @@ def associate(jsondata):
 				link = "https://twitter.com/" + api.selfscreenname + "/status/" + rt["retweeted_status"]["id_str"]
 				text = "@" + user + " ha retwiteado tu tweet"
 				conversations[index].notify(text, link)
-				if not conversations[index].editingtweets:
-					conversations.pop(index)
 		elif typ == "quote":
 			if index == None:
 				pass
@@ -150,8 +153,6 @@ def associate(jsondata):
 				link = "https://twitter.com/" + api.selfscreenname + "/status/" + quote["id_str"]
 				text = "@" + user + " ha citado tu tweet"
 				conversations[index].notify(text, link)
-				if not conversations[index].editingtweets:
-					conversations.pop(index)
 		elif typ == "reply":
 			if index == None:
 				pass
@@ -161,13 +162,13 @@ def associate(jsondata):
 				link = "https://twitter.com/" + api.selfscreenname + "/status/" + reply["id_str"]
 				text = "@" + user + " ha respondido a tu tweet"
 				conversations[index].notify(text, link)
-				if not conversations[index].editingtweets:
-					conversations.pop(index)
+		elif typ == "del":
+			tid = jsondata["tweet_delete_events"][0]["status"]["id"]
+			t_db = Tweet.objects.filter(id=int(tid))
+			t_db.delete()
+
 
 def cleanconvers():
-	indices = []
 	for i,c in enumerate(conversations):
 		if not c.editingtweets():
-			indices.append(i)
-	for i in indices:
-		conversations.pop(i)
+			conversations.pop(i)

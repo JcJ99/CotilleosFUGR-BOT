@@ -10,10 +10,10 @@ if keysinenviron:
 	token = os.environ.get("TOKEN_KEY")
 	token_secret = os.environ.get("TOKEN_SECRET_KEY")
 else:
-	consumer = 'iFOzwbd9JaCF5hcQyiAuQiAKI'
-	consumer_secret = 'B4WHCCOd8Z66AQcIGNZaAFWbhTu43ho8gXcQifrIfoi4WYrk0I'
-	token = '1097946363512455175-cLpWgUVUmtTCuDy8xzi1TKl0jw7AH1'
-	token_secret = 'DQrR73Nz5LHi34xkwhLznvvr7dZM8MldGIN0qtDjoWjRZ'
+	consumer = ''
+	consumer_secret = ''
+	token = ''
+	token_secret = ''
 
 
 #IBM cloud key

@@ -4,6 +4,7 @@ import threading
 from time import sleep
 from .config import MAX_TWEETS_PER_HOUR, SCORE_ZERO_ERROR
 from .spamfilter import is_inapropiate
+from .models import User, Tweet
 
 class ConverError(BaseException):
 	def __init__(self, string, critical=False):
@@ -28,7 +29,7 @@ class conversation:
 
 	@classmethod
 	def from_model(cls, model):
-		model_tweets = model.tweets
+		model_tweets = model.tweet_set.all()
 		tweets = [(tweet.id, tweet.date) for tweet in model_tweets]
 		if model.punishment_type == "TMO":
 			if (model.punishment_end == None) or (model.punishment_end < datetime.datetime.utcnow()):
@@ -39,7 +40,7 @@ class conversation:
 			punishment = ("ban", None)
 		else:
 			punishment = None
-		return cls(str(model.id), tweets=tweets, creationdate=model.creation_date, punishment=punishment, isadmin=model.is_admin)
+		return cls(str(model.id), tweets=tweets, creationdate=model.creationdate, punishment=punishment, isadmin=model.is_admin)
 
 	def queue(self):
 		while not len(self.taskqueue) == 0:
@@ -93,7 +94,11 @@ class conversation:
 		for i,tweet in enumerate(self.tweetstopost):
 			if i != 0:
 				tweet.inreplyto(self.tweets[len(self.tweets)-1])
-			self.tweets.append((tweet.post(), datetime.datetime.utcnow()))
+			tid = tweet.post()
+			u_db = self.get_model()
+			t_db = Tweet(id=tid, user=u_db, text=tweet.text())
+			t_db.save()
+			self.tweets.append((t_db.id, t_db.date))
 		self.tweetstopost = []
 		self.currtweetquote = ""
 		self.currtweetattachments = []
@@ -242,12 +247,14 @@ class conversation:
 				for noti in self.pendingnot:
 					noti.post()
 			elif msg.quickreplyresponse() == "Añadir tweet al hilo":
-				self.taskqueue.append(self.addtweet())
+				self.taskqueue.append(self.addtweet)
+				self.thread.start()
 			elif msg.quickreplyresponse() == "Eliminar último tweet del hilo":
 				self.removetweet()
 				self.respond()
 			elif msg.quickreplyresponse() == "Enviar tweet":
-				self.taskqueue.append(self.send())
+				self.taskqueue.append(self.send)
+				self.thread.start()
 				for noti in self.pendingnot:
 					noti.post()
 				return True
@@ -360,3 +367,19 @@ class conversation:
 
 	def forgive(self):
 		self.punishment = None
+
+	def get_model(self):
+		u_db = User.objects.filter(id=int(self.user_id))[0]
+		if not u_db:
+			if not self.punishment:
+				p = ("NAN", None)
+			else:
+				switch = {
+					"ban": "BAN",
+					"timeout": "TMO"
+				}
+				p = (switch[self.punishment[0]], self.punishment[1])
+			
+			u_db = User(id=int(self.user_id), is_admin=self.isadmin, punishment_type=p[0], punishment_end=p[1])
+			u_db.save()
+		return u_db
