@@ -4,32 +4,41 @@ import sys
 from chatbot.api_handler import msgauth
 from chatbot.config import APP_URL, TWITTER_ENV_NAME
 
+def check(request):
+    try:
+        request.raise_for_status()
+    except requests.HTTPError:
+        code = request.json()["errors"][0]["code"]
+        msg = request.json()["errors"][0]["message"]
+        print(f"{code}: {msg}")
 
 def register():
     r = requests.post(f"https://api.twitter.com/1.1/account_activity/all/{TWITTER_ENV_NAME}/webhooks.json", params={"url": APP_URL+"/webhook"}, auth=msgauth)
-    r.raise_for_status()
+    check(r)
+    id = r.json()["id"]
     r = requests.post(f"https://api.twitter.com/1.1/account_activity/all/{TWITTER_ENV_NAME}/subscriptions.json", auth=msgauth)
-    r.raise_for_status()
+    check(r)
+    return id
 
 def unregister():
     r = requests.get(f"https://api.twitter.com/1.1/account_activity/all/webhooks.json", auth=msgauth)
-    r.raise_for_status()
+    check(r)
     id = r.json()["environments"][0]["webhooks"][0]["id"]
     r = requests.delete(f"https://api.twitter.com/1.1/account_activity/all/{TWITTER_ENV_NAME}/webhooks/{id}.json", auth=msgauth)
-    r.raise_for_status()
+    check(r)
 
 def show():
     r = requests.get(f"https://api.twitter.com/1.1/account_activity/all/webhooks.json", auth=msgauth)
-    r.raise_for_status()
+    check(r)
     id = r.json()["environments"][0]["webhooks"][0]["id"]
     env_name = r.json()["environments"][0]["environment_name"]
-    print(f"env_name: ", env_name, "\tid: ", id)
+    print(f"env_name: ", env_name, ",\tid: ", id)
     return id
 
 def put():
     id = show()
     r = requests.put(f"https://api.twitter.com/1.1/account_activity/all/{TWITTER_ENV_NAME}/webhooks/{id}.json", auth=msgauth)
-    r.raise_for_status()
+    check(r)
     print("Done!")
 
 if __name__ == "__main__":
