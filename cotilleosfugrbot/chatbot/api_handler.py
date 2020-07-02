@@ -93,13 +93,13 @@ class attachment:
 		else:
 			uptyp = self.type
 		#INIT
-		if destination is "msg":
+		if destination == "msg":
 			switcher = {
 				"photo": "dm_image",
 				"video": "dm_video",
 				"animated_gif": "dm_gif"
 			}
-		if destination is "tweet":
+		if destination == "tweet":
 			switcher = {
 				"photo": "tweet_image",
 				"video": "tweet_video",
@@ -259,13 +259,13 @@ class msg:
 		else: return None
 
 	def getquickreply(self, index=-1):
-		if index is -1:
+		if index == -1:
 			return self.data["event"]["message_create"]["message_data"]["quick_reply"]["options"]
 		else:
 			return self.data["event"]["message_create"]["message_data"]["quick_reply"]["options"][index]
 
 	def rmquickreply(self, index=-1):
-		if index is -1:
+		if index == -1:
 			self.data["event"]["message_create"]["message_data"]["quick_reply"] = None
 		else:
 			try:
@@ -350,7 +350,7 @@ class tweet:
 
 	def rmattach(self, index=-1):
 		if type(self.data["media_ids"]) is list:
-			if index is -1:
+			if index == -1:
 				self.data["media_ids"] = None
 			else:
 				try:
@@ -420,8 +420,14 @@ def getselfscreenname():
 def getuserid(*screen_names):
 	par = {"screen_name": screen_names}
 	r = requests.get("https://api.twitter.com/1.1/users/lookup.json", auth=msgauth, params=par)
-	r.raise_for_status()
-	return [user["id_str"] for user in r.json()]
+	try:
+		r.raise_for_status()
+		return [user["id_str"] for user in r.json()]
+	except requests.HTTPError:
+		if r.json()["errors"][0]["code"] == 17:
+			raise NoidException("No existe el usuario introducido")
+		else:
+			raise
 
 #Function for obtaining user_name from id
 def getusername(*ids):

@@ -12,6 +12,7 @@ import threading
 import logging
 from time import sleep
 import atexit
+from .settings import DEBUG
 
 from webhook_tools import register, unregister
 
@@ -19,24 +20,26 @@ from django.core.wsgi import get_wsgi_application
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'cotilleosfugrbot.settings')
 
-# Initialization code
+if not DEBUG:
+    
+    # Initialization code
 
-logger = logging.getLogger(__name__)
+    logger = logging.getLogger(__name__)
 
-def regfunc():
-    sleep(3)
-    id = register()
-    logger.info(f"Aplicación registrada en Twitter con id: {id}")
+    def regfunc():
+        sleep(3)
+        id = register()
+        logger.info(f"Aplicación registrada en Twitter con id: {id}")
 
-t = threading.Thread(target=regfunc)
-t.start()
+    t = threading.Thread(target=regfunc)
+    t.start()
 
-# Clean-up code
+    # Clean-up code
 
-def exitfunc():
-    unregister()
-    logger.info("Aplicación desuscrita de la feed de Twitter")
+    def exitfunc():
+        unregister()
+        logger.info("Aplicación desuscrita de la feed de Twitter")
 
-atexit.register(exitfunc)
+    atexit.register(exitfunc)
 
 application = get_wsgi_application()

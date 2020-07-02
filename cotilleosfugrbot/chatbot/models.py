@@ -6,9 +6,10 @@ class User(models.Model):
     #NONE = "NAN"
     id = models.BigIntegerField(primary_key=True, editable=False)
     punishment_type = models.CharField(max_length=3, default="NAN", null=False)
-    punishment_end = models.DateTimeField(null=True)
+    punishment_end = models.DateTimeField(null=True, blank=True)
     is_admin = models.BooleanField(default=False)
     creationdate = models.DateTimeField(auto_now=True)
+    noti = models.BooleanField(default=True)
 
 class Tweet(models.Model):
     id = models.BigIntegerField(primary_key=True, editable=False)

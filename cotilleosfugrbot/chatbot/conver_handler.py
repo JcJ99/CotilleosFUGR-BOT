@@ -12,7 +12,7 @@ class ConverError(BaseException):
 		self.critical = critical
 
 class conversation:
-	def __init__(self, user_id, tweets=[], creationdate=datetime.datetime.utcnow(), punishment=None, isadmin=False):
+	def __init__(self, user_id, tweets=[], creationdate=datetime.datetime.utcnow(), punishment=None, isadmin=False, noti=True):
 		self.user_id = user_id
 		self.tweets = tweets
 		self.tweetstopost = []
@@ -26,13 +26,14 @@ class conversation:
 		self.punishment = punishment
 		self.creationdate = creationdate
 		self.isadmin = isadmin
+		self.noti = noti
 
 	@classmethod
 	def from_model(cls, model):
 		model_tweets = model.tweet_set.all()
 		tweets = [(tweet.id, tweet.date) for tweet in model_tweets]
 		if model.punishment_type == "TMO":
-			if (model.punishment_end == None) or (model.punishment_end < datetime.datetime.utcnow()):
+			if (model.punishment_end == None) or (model.punishment_end < datetime.datetime.now(datetime.timezone.utc)):
 				punishment = None
 			else:
 				punishment = ("timeout", model.punishment_end)
@@ -40,7 +41,7 @@ class conversation:
 			punishment = ("ban", None)
 		else:
 			punishment = None
-		return cls(str(model.id), tweets=tweets, creationdate=model.creationdate, punishment=punishment, isadmin=model.is_admin)
+		return cls(str(model.id), tweets=tweets, creationdate=model.creationdate, punishment=punishment, isadmin=model.is_admin, noti=model.noti)
 
 	def queue(self):
 		while not len(self.taskqueue) == 0:
@@ -70,7 +71,7 @@ class conversation:
 			raise ConverError("Has superado el límite de 5 tweets por hora, podrás volver a twittear a las " + (timefortweeting + datetime.timedelta(hours=2)).strftime("%X"))
 		if self.punishment:
 			if self.punishment[0] == "timeout":
-				if self.punishment[1] < datetime.datetime.utcnow():
+				if self.punishment[1] < datetime.datetime.now(datetime.timezone.utc):
 					self.punishment = None
 				else:
 					end = self.punishment[1].strftime("%H:%M:%S %d/%m/%Y UTC")
@@ -247,14 +248,12 @@ class conversation:
 				for noti in self.pendingnot:
 					noti.post()
 			elif msg.quickreplyresponse() == "Añadir tweet al hilo":
-				self.taskqueue.append(self.addtweet)
-				self.thread.start()
+				self.addtweet()
 			elif msg.quickreplyresponse() == "Eliminar último tweet del hilo":
 				self.removetweet()
 				self.respond()
 			elif msg.quickreplyresponse() == "Enviar tweet":
-				self.taskqueue.append(self.send)
-				self.thread.start()
+				self.send()
 				for noti in self.pendingnot:
 					noti.post()
 				return True
@@ -383,3 +382,12 @@ class conversation:
 			u_db = User(id=int(self.user_id), is_admin=self.isadmin, punishment_type=p[0], punishment_end=p[1])
 			u_db.save()
 		return u_db
+
+	def changenoti(self):
+		self.noti = not self.noti
+		try:
+			u_db = User.objects.filter(id=int(self.user_id))[0]
+			u_db.noti = not u_db.noti
+			u_db.save()
+		except IndexError:
+			pass
