@@ -112,7 +112,7 @@ def associate(jsondata):
 							conversations[index].notify(f"Las notificaciones de la actividad de tus tweets están ahora {word}", critical=True)
 							return
 
-						elif (command[0] in ["ban", "timeout", "list"]):
+						elif (command[0] in ["ban", "timeout", "list", "free"]):
 							if conversations[index].isadmin:
 								if command[0] == "ban":
 									try:
@@ -150,7 +150,7 @@ def associate(jsondata):
 										else:
 											raise IndexError
 									except IndexError:
-										conversations[index].notify("Uso: /ban [link/user] [tweet_link/username]", critical=True)
+										conversations[index].notify("Uso: /ban [link/user] <tweet_link/username>", critical=True)
 										return
 
 								if command[0] == "timeout":
@@ -203,7 +203,7 @@ def associate(jsondata):
 										else:
 											raise IndexError
 									except IndexError:
-										conversations[index].notify("Uso: /timeout [link/user] [tweet_link/username] [días]", critical=True)
+										conversations[index].notify("Uso: /timeout [link/user] <tweet_link/username> <días>", critical=True)
 
 								if command[0] == "list":
 									banned = User.objects.filter(punishment_type="BAN")
@@ -218,6 +218,26 @@ def associate(jsondata):
 										tmo_until = tmo_user_db.punishment_end.strftime("%d/%m/%Y, %H:%M:%S UTC")
 										response += f"\t\t\t    - @{tmo_user_name}\n\t\t      hasta: {tmo_until}\n"
 									conversations[index].notify(response, critical=True)
+
+								if command[0] == "free":
+									try:
+										uname = command[1]
+										try:
+											uid = api.getuserid(uname)[0]
+											u_db = User.objects.get(id=uid)
+											if u_db.punishment_type == "NAN":
+												conversations[index].notify(f"El usuario @{uname} no está castigado")
+											else:
+												u_db.punishment_type = "NAN"
+												u_db.punishment_end = None
+												u_db.save()
+												conversations[index].notify(f"Se ha eliminado el castigo al usuario: @{uname}")
+										except api.NoidException:
+											conversations[index].notify(f"El usuario @{uname} no existe")
+										except User.DoesNotExist:
+											conversations[index].notify(f"El usuario @{uname} no está castigado")
+									except IndexError:
+										conversations[index].notify("Uso: /free <username>")
 							else:
 								conversations[index].notify("No tienes permisos para hacer uso de este comando", critical=True)
 								return
@@ -227,6 +247,7 @@ def associate(jsondata):
 															   \t\u2022 /noti: Activa o desactiva las notificaciones de tus tweets.
 													   		   \t\u2022 /ban: Evita que un usuario pueda twittear.
 													   		   \t\u2022 /timeout: Evita que un usuario pueda twittear durante un tiempo.
+															   \t\u2022 /free: Elimina el castigo de un usuario.
 															   \t\u2022 /list: Muestra los usuarios castigados.""")
 							else:
 								conversations[index].notify("Comandos disponibles:\n\t\u2022 /noti: Activa o desactiva las notificaciones de tus tweets")
@@ -234,53 +255,42 @@ def associate(jsondata):
 					except IndexError:
 						if conversations[index].isadmin:
 							conversations[index].notify("""Comandos disponibles:
-														   \t\u2022 /noti: Activa o desactiva las notificaciones de tus tweets
-														   \t\u2022 /ban: Evita que un usuario pueda twittear [ADMIN]
-														   \t\u2022 /timeout: Evita que un usuario pueda twittear durante un tiempo [ADMIN]
-														   \t\u2022 /list: Muestra los usuarios castigados""")
+														   \t\u2022 /noti: Activa o desactiva las notificaciones de tus tweets.
+														   \t\u2022 /ban: Evita que un usuario pueda twittear.
+														   \t\u2022 /timeout: Evita que un usuario pueda twittear durante un tiempo.
+														   \t\u2022 /free: Elimina el castigo de un usuario.
+														   \t\u2022 /list: Muestra los usuarios castigados.""")
 						else:
-							conversations[index].notify("Comandos disponibles:\n\t\u2022 /noti: Activa o desactiva las notificaciones de tus tweets")
+							conversations[index].notify("Comandos disponibles:\n\t\u2022 /noti: Activa o desactiva las notificaciones de tus tweets.")
 				else:
 					conversations[index].read(msg)
 
 		if typ in ["fav", "rt", "quote", "reply"] and index != None:
 			if conversations[index].noti:
 				if typ == "fav":
-					if index == None:
-						pass
-					else:
-						fav = jsondata["favorite_events"][0]
-						user = fav["user"]["screen_name"]
-						link = "https://twitter.com/" + api.selfscreenname + "/status/" + fav["favorited_status"]["id_str"]
-						text = "\u2764 A @" + user + " le ha gustado tu tweet"
-						conversations[index].notify(text, link)
+					fav = jsondata["favorite_events"][0]
+					user = fav["user"]["screen_name"]
+					link = "https://twitter.com/" + api.selfscreenname + "/status/" + fav["favorited_status"]["id_str"]
+					text = "\u2764 A @" + user + " le ha gustado tu tweet"
+					conversations[index].notify(text, link)
 				elif typ == "rt":
-					if index == None:
-						pass
-					else:
-						rt = jsondata["tweet_create_events"][0]
-						user = rt["user"]["screen_name"]
-						link = "https://twitter.com/" + api.selfscreenname + "/status/" + rt["retweeted_status"]["id_str"]
-						text = "\U0001F504 @" + user + " ha retwiteado tu tweet"
-						conversations[index].notify(text, link)
+					rt = jsondata["tweet_create_events"][0]
+					user = rt["user"]["screen_name"]
+					link = "https://twitter.com/" + api.selfscreenname + "/status/" + rt["retweeted_status"]["id_str"]
+					text = "\U0001F504 @" + user + " ha retwiteado tu tweet"
+					conversations[index].notify(text, link)
 				elif typ == "quote":
-					if index == None:
-						pass
-					else:
-						quote = jsondata["tweet_create_events"][0]
-						user = quote["user"]["screen_name"]
-						link = "https://twitter.com/" + api.selfscreenname + "/status/" + quote["id_str"]
-						text = "\U0001F504 @" + user + " ha citado tu tweet"
-						conversations[index].notify(text, link)
+					quote = jsondata["tweet_create_events"][0]
+					user = quote["user"]["screen_name"]
+					link = "https://twitter.com/" + api.selfscreenname + "/status/" + quote["id_str"]
+					text = "\U0001F504 @" + user + " ha citado tu tweet"
+					conversations[index].notify(text, link)
 				elif typ == "reply":
-					if index == None:
-						pass
-					else:
-						reply = jsondata["tweet_create_events"][0]
-						user = reply["user"]["screen_name"]
-						link = "https://twitter.com/" + api.selfscreenname + "/status/" + reply["id_str"]
-						text = "\u21A9 @" + user + " ha respondido a tu tweet"
-						conversations[index].notify(text, link)
+					reply = jsondata["tweet_create_events"][0]
+					user = reply["user"]["screen_name"]
+					link = "https://twitter.com/" + api.selfscreenname + "/status/" + reply["id_str"]
+					text = "\u21A9 @" + user + " ha respondido a tu tweet"
+					conversations[index].notify(text, link)
 
 		elif typ == "del":
 			tid = jsondata["tweet_delete_events"][0]["status"]["id"]
@@ -292,3 +302,9 @@ def cleanconvers():
 	for i,c in enumerate(conversations):
 		if not c.editingtweets():
 			conversations.pop(i)
+
+def cleandatabase():
+	default_users = User.objects.filter(punishment_type="NAN").filter(is_admin=False).filter(noti=True)
+	for user in default_users:
+		if not user.tweet_set.filter(date__lt=(datetime.datetime.now(datetime.timezone.utc)+datetime.timedelta(days=40))):
+			user.delete()

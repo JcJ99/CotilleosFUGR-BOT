@@ -5,7 +5,7 @@ import hashlib
 import base64
 import json
 from .Auths import consumer_secret
-from .chatbot import associate, cleanconvers
+from .chatbot import associate, cleanconvers, cleandatabase
 
 logger = logging.getLogger(__name__)
 
@@ -28,4 +28,5 @@ def webhook(request):
         data = json.loads(request.body)
         associate(data)
         cleanconvers()
+        cleandatabase()
         return HttpResponse("OK")

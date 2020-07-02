@@ -431,10 +431,13 @@ def getuserid(*screen_names):
 
 #Function for obtaining user_name from id
 def getusername(*ids):
-	par = {"user_id": ids}
-	r = requests.get("https://api.twitter.com/1.1/users/lookup.json", auth=msgauth, params=par)
-	r.raise_for_status()
-	return [user["screen_name"] for user in r.json()]
+	if ids:
+		par = {"user_id": ids}
+		r = requests.get("https://api.twitter.com/1.1/users/lookup.json", auth=msgauth, params=par)
+		r.raise_for_status()
+		return [user["screen_name"] for user in r.json()]
+	else:
+		return []
 
 try:
 	selfid = getselfid()

@@ -219,7 +219,8 @@ class conversation:
 					attachment = api.attachment.frommsg(msg)
 					if len(self.currtweetattachments) >= 1 and len(self.currtweetattachments) < 4:
 						if self.currtweetattachments[0].type == "photo" and attachment.type == "photo":
-							self.currtweetattachments.append(attachment)
+							#self.currtweetattachments.append(attachment)
+							raise ConverError("Por razones ajenas al bot, únicamente es posible adjuntar una foto")
 						elif self.currtweetattachments[0].type != "photo" and attachment.type != "photo" and len(self.currtweetattachments) == 1:
 							raise ConverError("Únicamente se puede adjuntar un vídeo/gif")
 						else:
@@ -368,8 +369,10 @@ class conversation:
 		self.punishment = None
 
 	def get_model(self):
-		u_db = User.objects.filter(id=int(self.user_id))[0]
-		if not u_db:
+		try:
+			u_db = User.objects.get(id=int(self.user_id))
+			return u_db
+		except User.DoesNotExist:
 			if not self.punishment:
 				p = ("NAN", None)
 			else:
@@ -381,7 +384,7 @@ class conversation:
 			
 			u_db = User(id=int(self.user_id), is_admin=self.isadmin, punishment_type=p[0], punishment_end=p[1])
 			u_db.save()
-		return u_db
+			return u_db
 
 	def changenoti(self):
 		self.noti = not self.noti
