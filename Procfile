@@ -1,1 +1,1 @@
-web: gunicorn --chdir cotilleosfugrbot cotilleosfugrbot.wsgi
+web: gunicorn --chdir cotilleosfugrbot cotilleosfugrbot.wsgi --workers=1
