@@ -1,4 +1,4 @@
-apparmor==2.13.4
+apparmor
 appdirs==1.4.4
 application-utility==1.3.2
 astroid==2.4.1
