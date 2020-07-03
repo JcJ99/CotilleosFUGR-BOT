@@ -1,8 +1,10 @@
 from . import api_handler as api
 from . import conver_handler as conv
 from .models import User, Tweet
+from .welcomemsg import welcomemsgtext
 import logging
 import datetime
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -245,8 +247,8 @@ def associate(jsondata):
 							if conversations[index].isadmin:
 								conversations[index].notify("""Comandos disponibles:
 															   \t\u2022 /noti: Activa o desactiva las notificaciones de tus tweets.
-													   		   \t\u2022 /ban: Evita que un usuario pueda twittear.
-													   		   \t\u2022 /timeout: Evita que un usuario pueda twittear durante un tiempo.
+															   \t\u2022 /ban: Evita que un usuario pueda twittear.
+															   \t\u2022 /timeout: Evita que un usuario pueda twittear durante un tiempo.
 															   \t\u2022 /free: Elimina el castigo de un usuario.
 															   \t\u2022 /list: Muestra los usuarios castigados.""")
 							else:

@@ -24,7 +24,19 @@ Para citar un tweet basta con enviar el link del mismo, no es posible citar twee
 
 ### Publicar un hilo
 
-Edita los tweets uno a uno y pulsa _Añadir tweet al hilo_ para pasar a editar el siguente
+Edita los tweets uno a uno y pulsa _Añadir tweet al hilo_ para pasar a editar el siguente.
+
+### Activar/Desactivar notificaciones
+
+Es posible activar y desactivar las notificaciones de la actividad de los tweets publicados enviando un mensaje con el siguiente comando:
+
+```bash
+/noti
+```
+
+## Guía del administrador
+
+
 
 ## Set-Up
 
@@ -52,13 +64,13 @@ La variable **TWITTER_ENV_NAME** es el nombre del entorno de la aplicación regi
 
 Puede cambiar el número máximo de tweets que un usuario puede enviar en una hora ajustando la variable **MAX_TWEETS_PER_HOUR**
 
-Introduzce la URI de una base de datos en la que el bot guardará ls ids de los usuario del bot así como las ids de los tweets publicados en la variable DATABASE_URL. Si para la base de datos usas PostgrelSQL rellena los campos, _user, pw..._ en caso contrario introduce la url de tu base de datos. Recuerda crear un usuario asociado al bot en la base de datos.
+Introduzce la URI de una base de datos en la que el bot guardará ls ids de los usuario del bot así como las ids de los tweets publicados en la variable DATABASE_URL. Es posible configurar cualquier tipo de base de datos en el archivo cotilleosfugrbot.settings.py https://docs.djangoproject.com/en/3.0/ref/databases/. Recuerda crear un usuario asociado al bot en la base de datos.
 
-Ajusta el límite de puntuación negativa del filtro de spam con un valor entre 0 y -1. Siendo cero el más estricto. Se recomienda un valor de -0.85
+Ajusta el límite de puntuación negativa del filtro de spam con un valor entre 0 y -1. Siendo cero el más estricto. Se recomienda un valor de 0, pues es una característica experimental.
 
 Apaga o enciende el detector de texto sin sentido asignando los valores 0 o 1 a la variable SCORE_ZERO_ERROR, se recomienda que se mantenga apagada para evitar falsos positivos.
 
-Todas estas configuraciones pueden ser ajustadas desde variables de entorno.
+Todas estas configuraciones pueden ser ajustadas desde variables de entorno con el mismo nombre.
 
 4. Introducir claves del servicio IBM Natural Languaje Understanding
 
@@ -79,8 +91,8 @@ Estas se pueden introucir en el archivo Auths.py en forma de string o pueden ser
 
 Realiza la migración de la base de datos con el comando:
 
-```Pyhton
-pyhton manage.py db init && pyhton manage.py db migrate && pyhton manage.py db upgrade
+```Shell
+python manage.py migrate && python manage.py chatbot makemigrations && python manage.py migrate
 ```
 
 7. Iniciar la aplicación utilizando gunicorn:

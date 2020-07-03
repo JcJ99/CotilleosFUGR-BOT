@@ -4,7 +4,7 @@ class User(models.Model):
     #BAN = "BAN"
     #TIMEOUT = "TMO"
     #NONE = "NAN"
-    id = models.BigIntegerField(primary_key=True, editable=False)
+    id = models.BigIntegerField(primary_key=True, editable=True)
     punishment_type = models.CharField(max_length=3, default="NAN", null=False)
     punishment_end = models.DateTimeField(null=True, blank=True)
     is_admin = models.BooleanField(default=False)

@@ -12,34 +12,39 @@ import threading
 import logging
 from time import sleep
 import atexit
-from .settings import DEBUG
-
-from webhook_tools import register, unregister
+from webhook_tools import register, unregister, set_welcome_message, remove_welcome_message
+#from chatbot.chatbot import set_welcome_message, remove_welcome_message
 
 from django.core.wsgi import get_wsgi_application
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'cotilleosfugrbot.settings')
-
-if not DEBUG:
     
-    # Initialization code
+# Initialization code
 
-    logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
-    def regfunc():
-        sleep(3)
-        id = register()
-        logger.info(f"Aplicación registrada en Twitter con id: {id}")
+wmsg_id, wmsg_rule_id = set_welcome_message()
+logger.info("Mensaje de bienvenida establecido")
 
-    t = threading.Thread(target=regfunc)
-    t.start()
+def regfunc():
+    sleep(5)
+    id = register()
+    logger.info(f"Aplicación registrada en Twitter con id: {id}")
 
-    # Clean-up code
+t = threading.Thread(target=regfunc)
+t.start()
 
-    def exitfunc():
-        unregister()
-        logger.info("Aplicación desuscrita de la feed de Twitter")
+# Clean-up code
 
-    atexit.register(exitfunc)
+def exitfunc_unregister():
+    unregister()
+    logger.info("Aplicación desuscrita de la feed de Twitter")
+
+def exitfunc_remove_wmsg(wmsg_id, wmsg_rule_id):
+    remove_welcome_message(wmsg_id, wmsg_rule_id)
+    logger.info("Mensaje de bienvenida eliminado")
+
+atexit.register(exitfunc_remove_wmsg, wmsg_id, wmsg_rule_id)
+atexit.register(exitfunc_unregister)
 
 application = get_wsgi_application()
