@@ -3,6 +3,9 @@ from .Auths import *
 from requests_oauthlib import OAuth1
 import os
 import sys
+import logging
+
+logger = logging.getLogger(__name__)
 
 #Autenticación
 msgauth = OAuth1(consumer, consumer_secret, token, token_secret)
@@ -289,6 +292,7 @@ class msg:
 			}
 		}
 		r = requests.post("https://api.twitter.com/1.1/direct_messages/welcome_messages/rules/new.json", auth=msgauth, json=data)
+		logger.info(r.text)
 		r.raise_for_status()
 		self.ruleid = r.json()["welcome_message_rule"]["id"]
 

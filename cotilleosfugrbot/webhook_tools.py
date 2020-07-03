@@ -31,10 +31,13 @@ def unregister():
 def show():
     r = requests.get(f"https://api.twitter.com/1.1/account_activity/all/webhooks.json", auth=api.msgauth)
     check(r)
-    id = r.json()["environments"][0]["webhooks"][0]["id"]
-    env_name = r.json()["environments"][0]["environment_name"]
-    print(f"env_name: ", env_name, ",\tid: ", id)
-    return id
+    try:
+        id = r.json()["environments"][0]["webhooks"][0]["id"]
+        env_name = r.json()["environments"][0]["environment_name"]
+        print(f"env_name: ", env_name, ",\tid: ", id)
+        return id
+    except IndexError:
+        print("No hay aplicaciones registradas")
 
 def put():
     id = show()
