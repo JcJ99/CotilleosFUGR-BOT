@@ -292,7 +292,7 @@ class msg:
 			}
 		}
 		r = requests.post("https://api.twitter.com/1.1/direct_messages/welcome_messages/rules/new.json", auth=msgauth, json=data)
-		logger.info(r.text)
+		logger.critical(r.text)
 		r.raise_for_status()
 		self.ruleid = r.json()["welcome_message_rule"]["id"]
 
