@@ -39,11 +39,12 @@ def show():
     except IndexError:
         print("No hay aplicaciones registradas")
 
-def put():
+def put(print=True):
     id = show()
     r = requests.put(f"https://api.twitter.com/1.1/account_activity/all/{TWITTER_ENV_NAME}/webhooks/{id}.json", auth=api.msgauth)
     check(r)
-    print("Done!")
+    if print:
+        print("Done!")
 
 
 def cleanwelcomemsg():
