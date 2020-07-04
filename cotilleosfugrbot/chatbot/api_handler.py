@@ -446,6 +446,15 @@ def getusername(*ids):
 	else:
 		return []
 
+#Function for deleting posted tweets
+def tweet_delete(tweet_id):
+	r = requests.post(f"https://api.twitter.com/1.1/statuses/destroy/{tweet_id}.json", auth=msgauth, params={"id": tweet_id})
+	try:
+		r.raise_for_status()
+	except requests.HTTPError:
+		logger.critical(r.text)
+		raise
+
 try:
 	selfid = getselfid()
 	selfscreenname = getselfscreenname()

@@ -36,6 +36,81 @@ Es posible activar y desactivar las notificaciones de la actividad de los tweets
 
 ## Guía del administrador
 
+Hay disponibles una serie de comandos exclusivos de una serie de usuarios (de Twitter) que se designan como administradores. Estos permiten evitar comportamientos indeseados, dando a los administradores la posibilidad de evitar que un usuario twitee durante o tiempo o indefinidamente.
+
+### Gestión del grupo de administradores
+
+Es necesario crear una cuenta de administrador de Django para gestionar los administradores de Twitter. Para ello, se ejecuta el siguiente comando en la terminal, y se introduce la información que requiera el programa.
+
+```bash
+python cotilleosfugrbot/manage.py createsuperuser
+```
+
+Una vez creada la cuenta de administrador de Django es posible acceder al panel de control del bot a través de:
+
+```url
+APP_URL/admin
+```
+
+IMAGEN
+
+Tras iniciar sesión, se añade un administrador clicando en User -> Añadir
+
+IMAGEN
+
+Para añadir un usuario de Twitter al grupo de administradores es necesario conocer su id de Twitter, para ello son útiles herramientas como: https://tweeterid.com/. Una vez conocido el id del usuario a añadir como administrador, este se introduce en el campo "Id" de la imagen, y se marca la casilla is_admin. Para guardar los cambios se clica en "Grabar"
+
+IMAGEN
+
+### Comandos de administrador
+
+Los administradores tienen acceso a comandos adicionales a través de mensajes directos del bot.
+
+#### Ban
+
+Es posible evitar que un usuario publique mensajes nunca más haciendo uso del comando:
+
+```bash
+/ban user <user_name (@)>
+/ban link <bot_tweet_link>
+```
+
+Existen dos formas de banear a un usuario. La primera de ellas es conociendo su nombre de usuario de Twitter y la segunda es conociendo el link de un tweet publicado por el usuario haciendo uso del bot. La identidad del usuario será revelada incluso si se hace uso del segundo método.
+
+#### Timeout
+
+También es posible evitar que un usuario twitee durante un tiempo determinado. Para ello se hace uso del comando:
+
+```bash
+/timeout user <user_name (@)>
+/timeout link <bot_tweet_link>
+```
+
+El funcionamiento es análogo al del comando /ban.
+
+#### Free
+
+Elimina el castigo impuesto sobre un usuario determinado:
+
+```bash
+/free <user_name (@)>
+```
+
+#### List
+
+Muestra una lista de todos los usuarios castigados:
+
+```bash
+/list
+```
+
+#### Delete
+
+Elimina un tweet publicado por cualquier usuario:
+
+```bash
+/delete <tweet_link>
+```
 
 
 ## Set-Up
@@ -57,7 +132,7 @@ sudo pip install -r requirements.txt
 Introduce en la variable APP_URL el link en el que está funcionando el bot
 
 ```Python
-APP_URL = "https://xxxxx.herokuapp.com"
+APP_URL = "https://xxxxx.example.com"
 ```
 
 La variable **TWITTER_ENV_NAME** es el nombre del entorno de la aplicación registrada en Twitter Developers. https://developer.twitter.com/en/docs/basics/developer-portal/guides/dev-environments.html
@@ -98,5 +173,7 @@ python manage.py migrate && python manage.py chatbot makemigrations && python ma
 7. Iniciar la aplicación utilizando gunicorn:
 
 ```bash
-gunicorn wsgi
+gunicorn --chdir cotilleosfugr cotilleosfugr.wsgi
 ```
+
+Este repositorio está preparado para funcionar directamente si se aloja en heroku.

@@ -114,7 +114,7 @@ def associate(jsondata):
 							conversations[index].notify(f"Las notificaciones de la actividad de tus tweets están ahora {word}", critical=True)
 							return
 
-						elif (command[0] in ["ban", "timeout", "list", "free"]):
+						elif (command[0] in ["ban", "timeout", "list", "free", "delete"]):
 							if conversations[index].isadmin:
 								if command[0] == "ban":
 									try:
@@ -173,9 +173,9 @@ def associate(jsondata):
 													u_db.save()
 													uname = api.getusername(u_db.id)[0]
 													date_string = u_db.punishment_end.strftime("%d/%m/%Y, %H:%M:%S UTC")
-													conversations[index].notify(f"El usuario @{uname} no podrá twittear hasta: {date_string}")
+													conversations[index].notify(f"El usuario @{uname} no podrá twittear hasta: {date_string}", critical=True)
 												except Tweet.DoesNotExist:
-													conversations[index].notify("El tweet no está registrado en la base de datos")
+													conversations[index].notify("El tweet no está registrado en la base de datos", critical=True)
 												return
 											except api.NoUrlException:
 												raise IndexError
@@ -192,15 +192,15 @@ def associate(jsondata):
 												u_db.punishment_end = datetime.datetime.utcnow() + datetime.timedelta(days=days)
 												u_db.save()
 												date_string = u_db.punishment_end.strftime("%d/%m/%Y, %H:%M:%S UTC")
-												conversations[index].notify(f"El usuario @{u} no podrá twittear hasta: {date_string}")
+												conversations[index].notify(f"El usuario @{u} no podrá twittear hasta: {date_string}", critical=True)
 											except api.NoidException:
-												conversations[index].notify(f"El usuario @{u} no existe")
+												conversations[index].notify(f"El usuario @{u} no existe", critical=True)
 											except User.DoesNotExist:
 												p_end = datetime.datetime.utcnow() + datetime.timedelta(days=days)
 												u_db = User(id=int(uid), punishment_type="TMO", punishment_end=p_end)
 												u_db.save()
-												date_string = p_endstrftime("%d/%m/%Y, %H:%M:%S UTC")
-												conversations[index].notify(f"El usuario @{u} no podrá twittear hasta: {date_string}")
+												date_string = p_end.strftime("%d/%m/%Y, %H:%M:%S UTC")
+												conversations[index].notify(f"El usuario @{u} no podrá twittear hasta: {date_string}", critical=True)
 											return
 										else:
 											raise IndexError
@@ -228,18 +228,31 @@ def associate(jsondata):
 											uid = api.getuserid(uname)[0]
 											u_db = User.objects.get(id=uid)
 											if u_db.punishment_type == "NAN":
-												conversations[index].notify(f"El usuario @{uname} no está castigado")
+												conversations[index].notify(f"El usuario @{uname} no está castigado", critical=True)
 											else:
 												u_db.punishment_type = "NAN"
 												u_db.punishment_end = None
 												u_db.save()
-												conversations[index].notify(f"Se ha eliminado el castigo al usuario: @{uname}")
+												conversations[index].notify(f"Se ha eliminado el castigo al usuario: @{uname}", critical=True)
 										except api.NoidException:
-											conversations[index].notify(f"El usuario @{uname} no existe")
+											conversations[index].notify(f"El usuario @{uname} no existe", critical=True)
 										except User.DoesNotExist:
-											conversations[index].notify(f"El usuario @{uname} no está castigado")
+											conversations[index].notify(f"El usuario @{uname} no está castigado", critical=True)
 									except IndexError:
 										conversations[index].notify("Uso: /free <username>")
+								
+								if command[0] == "delete":
+									try:
+										turl = msg.url()
+										tid = int(turl.split("/")[5])
+										t_db = Tweet.objects.get(id=tid)
+										api.tweet_delete(tid)
+										uname = api.getusername(t_db.user.id)[0]
+										conversations[index].notify(f"El tweet de @{uname} eliminado correctamente", critical=True)
+									except api.NoUrlException:
+										conversations[index].notify("Uso: /delete <tweet_link>", critical=True)
+									except Tweet.DoesNotExist:
+										conversations[index].notify("El tweet no está registrado en la base de datos", critical=True)
 							else:
 								conversations[index].notify("No tienes permisos para hacer uso de este comando", critical=True)
 								return
@@ -250,7 +263,8 @@ def associate(jsondata):
 															   \t\u2022 /ban: Evita que un usuario pueda twittear.
 															   \t\u2022 /timeout: Evita que un usuario pueda twittear durante un tiempo.
 															   \t\u2022 /free: Elimina el castigo de un usuario.
-															   \t\u2022 /list: Muestra los usuarios castigados.""")
+															   \t\u2022 /list: Muestra los usuarios castigados.
+															   \t\u2022 /delete: Elimina un tweet publicado.""")
 							else:
 								conversations[index].notify("Comandos disponibles:\n\t\u2022 /noti: Activa o desactiva las notificaciones de tus tweets")
 							return
@@ -261,7 +275,7 @@ def associate(jsondata):
 														   \t\u2022 /ban: Evita que un usuario pueda twittear.
 														   \t\u2022 /timeout: Evita que un usuario pueda twittear durante un tiempo.
 														   \t\u2022 /free: Elimina el castigo de un usuario.
-														   \t\u2022 /list: Muestra los usuarios castigados.""")
+														   \t\u2022 /delete: Elimina un tweet publicado.""")
 						else:
 							conversations[index].notify("Comandos disponibles:\n\t\u2022 /noti: Activa o desactiva las notificaciones de tus tweets.")
 				else:
