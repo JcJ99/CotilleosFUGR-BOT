@@ -79,7 +79,7 @@ class conversation:
 			else:
 				raise ConverError("Has recibido el mayor castigo por comportamiento inapropiado, no podrás volver a twittear nunca más", critical=True)
 		#Check if there is a current tweet on editing
-		self.creationdate = datetime.datetime.now(datetime.timezone.now)
+		self.creationdate = datetime.datetime.now(datetime.timezone.utc)
 		conditions = [
 			self.currtweettext == "",
 			self.currtweetattachments == [],
