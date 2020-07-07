@@ -12,7 +12,7 @@ class ConverError(BaseException):
 		self.critical = critical
 
 class conversation:
-	def __init__(self, user_id, tweets=[], creationdate=datetime.datetime.utcnow(), punishment=None, isadmin=False, noti=True):
+	def __init__(self, user_id, tweets=[], creationdate=datetime.datetime.now(datetime.timezone.utc), punishment=None, isadmin=False, noti=True):
 		self.user_id = user_id
 		self.tweets = tweets
 		self.tweetstopost = []
@@ -61,7 +61,7 @@ class conversation:
 	def send(self):
 		spamming = False
 		try:
-			delta = datetime.datetime.utcnow() - self.tweets[len(self.tweets)-MAX_TWEETS_PER_HOUR-1][1]
+			delta = datetime.datetime.now(datetime.timezone.utc) - self.tweets[len(self.tweets)-MAX_TWEETS_PER_HOUR-1][1]
 			if delta < datetime.timedelta(hours=1):
 				spamming = True
 		except IndexError:
@@ -79,7 +79,7 @@ class conversation:
 			else:
 				raise ConverError("Has recibido el mayor castigo por comportamiento inapropiado, no podrás volver a twittear nunca más", critical=True)
 		#Check if there is a current tweet on editing
-		self.creationdate = datetime.datetime.utcnow()
+		self.creationdate = datetime.datetime.now(datetime.timezone.now)
 		conditions = [
 			self.currtweettext == "",
 			self.currtweetattachments == [],
@@ -359,7 +359,7 @@ class conversation:
 		return not all(conditions)
 
 	def timeout(self,days):
-		end_punishment = datetime.datetime.utcnow() + datetime.timedelta(days=days)
+		end_punishment = datetime.datetime.now(datetime.timezone.utc)+ datetime.timedelta(days=days)
 		self.punishment = "timeout", end_punishment
 
 	def ban(self):
