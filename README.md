@@ -54,6 +54,7 @@ APP_URL/admin
 ![alt text](https://raw.githubusercontent.com/JcJ99/CotilleosFUGR-BOT/master/readme_files/login.png)
 
 Tras iniciar sesión, se añade un administrador clicando en User -> Añadir
+
 ![alt text](https://raw.githubusercontent.com/JcJ99/CotilleosFUGR-BOT/master/readme_files/control_panel.png)
 
 Para añadir un usuario de Twitter al grupo de administradores es necesario conocer su id de Twitter, para ello son útiles herramientas como: https://tweeterid.com/. Una vez conocido el id del usuario a añadir como administrador, este se introduce en el campo "Id" de la imagen, y se marca la casilla is_admin. Para guardar los cambios se clica en "Grabar"
