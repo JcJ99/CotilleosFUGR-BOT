@@ -7,4 +7,5 @@ welcomemsgtext = """COTILLEOS FÍSICA UGR
 	\u2022	Se permiten un máximo de 5 tweets a la hora. Ya se envíen por separado o en un hilo.
 	\u2022	Serás notificado cuando alguien interaccione con alguno de tus tweets (RT, MG, respuesta...).
 	\u2022	Para desactivar las notificaciones escribe en un mensaje: /noti.
+	\u2022	Es posible borrar tus propios tweets escribiendo un mensaje con: /delete <tweet_link>
 	\u2022	Un comportamiento no adecuado resultará en la imposibilidad de publicar más tweets."""
