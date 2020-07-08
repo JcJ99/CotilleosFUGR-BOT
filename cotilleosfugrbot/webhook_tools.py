@@ -86,18 +86,23 @@ def remove_welcome_message(wmsg_id, wmsg_rule_id):
 	r = requests.delete("https://api.twitter.com/1.1/direct_messages/welcome_messages/rules/destroy.json", auth=api.msgauth, params={"id": wmsg_rule_id})
 	r.raise_for_status()
 
+def clean():
+    unregister()
+    cleanwelcomemsg()
+
 if __name__ == "__main__":
     switch = {
         "register": register,
         "unregister": unregister,
         "list": show,
         "put": put,
-        "cleanmsg": cleanwelcomemsg
+        "cleanmsg": cleanwelcomemsg,
+        "clean": clean
     }
     try:
         option = sys.argv[1]
         switch[option]()
     except KeyError:
-        print("Uso: webhook_tools [option]\n\t- register: Registra la app en Twitter\n\t- unregister: Borra la app del registro de twitter\n\t- list: Muestra las apps registradas en Twitter\n\t- put: Realiza una llamada a la app para comprobar que está activa")
+        print("Uso: webhook_tools [option]\n\t- register: Registra la app en Twitter\n\t- unregister: Borra la app del registro de twitter\n\t- list: Muestra las apps registradas en Twitter\n\t- put: Realiza una llamada a la app para comprobar que está activa\n\t- clean: Elimina el mensaje de bienvenida y la aplicación del registro de Twitter")
     except IndexError:
-        print("Uso: webhook_tools [option]\n\t- register: Registra la app en Twitter\n\t- unregister: Borra la app del registro de twitter\n\t- list: Muestra las apps registradas en Twitter\n\t- put: Realiza una llamada a la app para comprobar que está activa")
+        print("Uso: webhook_tools [option]\n\t- register: Registra la app en Twitter\n\t- unregister: Borra la app del registro de twitter\n\t- list: Muestra las apps registradas en Twitter\n\t- put: Realiza una llamada a la app para comprobar que está activa\n\t- clean: Elimina el mensaje de bienvenida y la aplicación del registro de Twitter")

@@ -111,6 +111,14 @@ Elimina un tweet publicado por cualquier usuario:
 /delete <tweet_link>
 ```
 
+### Expose
+
+Revela qué usuario publicó un determinado tweet:
+
+```bash
+/expose <tweet_link>
+```
+
 
 ## Set-Up
 
@@ -120,13 +128,19 @@ Elimina un tweet publicado por cualquier usuario:
 git clone https://github.com/JcJ99/CotilleosFUGR-BOT.git
 ```
 
-2. Instala las librerías necesarias
+2. Cambia al directorio descargado
+
+```bash
+cd CotilleosFUGR-BOT
+```
+
+3. Instala las librerías necesarias
 
 ```bash
 sudo pip install -r requirements.txt
 ``` 
 
-3. Editar el archivo config.py
+4. Editar el archivo cotilleosfugrbot/chatbot/config.py
 
 Introduce en la variable APP_URL el link en el que está funcionando el bot
 
@@ -138,7 +152,7 @@ La variable **TWITTER_ENV_NAME** es el nombre del entorno de la aplicación regi
 
 Puede cambiar el número máximo de tweets que un usuario puede enviar en una hora ajustando la variable **MAX_TWEETS_PER_HOUR**
 
-Introduzce la URI de una base de datos en la que el bot guardará ls ids de los usuario del bot así como las ids de los tweets publicados en la variable DATABASE_URL. Es posible configurar cualquier tipo de base de datos en el archivo cotilleosfugrbot.settings.py https://docs.djangoproject.com/en/3.0/ref/databases/. Recuerda crear un usuario asociado al bot en la base de datos.
+Introduzce la URI de una base de datos en la que el bot guardará ls ids de los usuario del bot así como las ids de los tweets publicados en la variable DATABASE_URL. Es posible configurar cualquier tipo de base de datos en el archivo cotilleosfugrbot/cotilleosfugrbot/settings.py https://docs.djangoproject.com/en/3.0/ref/databases/. Recuerda crear un usuario asociado al bot en la base de datos.
 
 Ajusta el límite de puntuación negativa del filtro de spam con un valor entre 0 y -1. Siendo cero el más estricto. Se recomienda un valor de 0, pues es una característica experimental.
 
@@ -146,7 +160,7 @@ Apaga o enciende el detector de texto sin sentido asignando los valores 0 o 1 a 
 
 Todas estas configuraciones pueden ser ajustadas desde variables de entorno con el mismo nombre.
 
-4. Introducir claves del servicio IBM Natural Languaje Understanding
+5. Introducir claves del servicio IBM Natural Languaje Understanding
 
 El bot hace uso de este servicio para el fitro de Spam https://www.ibm.com/watson/services/natural-language-understanding/. Es necesario crear una cuenta y obtener una clave para su uso.
 
@@ -154,14 +168,14 @@ Introduce la url de la región de servicio deseada en la variable ibm_language_u
 
 Todas estas configuraciones pueden ser ajustadas desde variables de entorno.
 
-5. Introducir keys de autenticación de la api de twitter
+6. Introducir keys de autenticación de la api de twitter
 
 Estas se pueden introucir en el archivo Auths.py en forma de string o pueden ser añadidas como variables de entorno con los nombres:
 
 ```Python
 "CONSUMER_KEY", "CONSUMER_SECRET_KEY", "TOKEN_KEY", "TOKEN_SECRET_KEY"
 ```
-6. Configurar base de datos
+7. Configurar base de datos
 
 Realiza la migración de la base de datos con el comando:
 
@@ -169,10 +183,10 @@ Realiza la migración de la base de datos con el comando:
 python manage.py migrate && python manage.py chatbot makemigrations && python manage.py migrate
 ```
 
-7. Iniciar la aplicación utilizando gunicorn:
+9. Iniciar la aplicación utilizando gunicorn:
 
 ```bash
-gunicorn --chdir cotilleosfugr cotilleosfugr.wsgi
+gunicorn --chdir cotilleosfugrbot cotilleosfugrbot.wsgi
 ```
 
 Este repositorio está preparado para funcionar directamente si se aloja en heroku.

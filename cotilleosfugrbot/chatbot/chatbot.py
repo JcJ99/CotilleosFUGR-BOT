@@ -38,18 +38,18 @@ def knownuser(jsondata):
 			if c.user_id == uid:
 				return index
 			index += 1
-		user = User.objects.filter(id=int(uid))
-		if not user:
-			return None
-		else:
-			conversations.append(conv.conversation.from_model(user[0]))
+		try:
+			user = User.objects.get(id=int(uid))
+			conversations.append(conv.conversation.from_model(user))
 			return len(conversations) - 1
+		except User.DoesNotExist:
+			return None
+			
+
 	if typ == "fav":
 		tid = jsondata["favorite_events"][0]["favorited_status"]["id"]
-		twt = Tweet.objects.filter(id=int(tid))[0]
-		if not twt:
-			return None
-		else:
+		try:
+			twt = Tweet.objects.get(id=int(tid))
 			uid = twt.user.id
 			for c in conversations:
 				if int(c.user_id) == uid:
@@ -57,13 +57,14 @@ def knownuser(jsondata):
 				index += 1
 			conversations.append(conv.conversation.from_model(twt.user))
 			return len(conversations) - 1
+		except Tweet.DoesNotExist:
+			return None
+
 	if typ in ["rt", "quote", "reply"]:
 		if typ == "quote":
 			tid = jsondata["tweet_create_events"][0]["quoted_status_id"]
-			twt = Tweet.objects.filter(id=int(tid))[0]
-			if not twt:
-				return None
-			else:
+			try:
+				twt = Tweet.objects.get(id=int(tid))
 				uid = twt.user.id
 				for c in conversations:
 					if int(c.user_id) == uid:
@@ -71,20 +72,23 @@ def knownuser(jsondata):
 					index += 1
 				conversations.append(conv.conversation.from_model(twt.user))
 				return len(conversations) - 1
-		else:
-			uid = jsondata["tweet_create_events"][0]["user"]["id"]
-			if (str(uid) == api.selfid):
-				return -1
-			for c in conversations:
-				if c.user_id == str(uid):
-					return index
-				index += 1
-			user = User.objects.filter(id=int(uid))
-			if not user:
+			except Tweet.DoesNotExist:
 				return None
-			else:
-				conversations.append(conv.conversation.from_model(user[0]))
+		else:
+			tid = jsondata["tweet_create_events"][0]["retweeted_status"]["id_str"]
+			try:
+				t_db = Tweet.objects.get(id=int(tid))
+				uid = t_db.user.id
+				if (str(uid) == api.selfid):
+					return -1
+				for c in conversations:
+					if c.user_id == str(uid):
+						return index
+					index += 1
+				conversations.append(conv.conversation.from_model(t_db.user))
 				return len(conversations) - 1
+			except Tweet.DoesNotExist:
+				return None
 	if typ == "del":
 		return None
 
@@ -114,7 +118,7 @@ def associate(jsondata):
 							conversations[index].notify(f"Las notificaciones de la actividad de tus tweets están ahora {word}", critical=True)
 							return
 
-						elif (command[0] in ["ban", "timeout", "list", "free", "delete"]):
+						elif (command[0] in ["ban", "timeout", "list", "free", "delete", "expose"]):
 							if conversations[index].isadmin:
 								if command[0] == "ban":
 									try:
@@ -248,9 +252,21 @@ def associate(jsondata):
 										t_db = Tweet.objects.get(id=tid)
 										api.tweet_delete(tid)
 										uname = api.getusername(t_db.user.id)[0]
-										conversations[index].notify(f"El tweet de @{uname} eliminado correctamente", critical=True)
+										conversations[index].notify(f"El tweet de @{uname} fue eliminado correctamente", critical=True)
 									except api.NoUrlException:
 										conversations[index].notify("Uso: /delete <tweet_link>", critical=True)
+									except Tweet.DoesNotExist:
+										conversations[index].notify("El tweet no está registrado en la base de datos", critical=True)
+
+								if command[0] == "expose":
+									try:
+										turl = msg.url()
+										tid = int(turl.split("/")[5])
+										t_db = Tweet.objects.get(id=tid)
+										uname = api.getusername(t_db.user.id)[0]
+										conversations[index].notify(f"El tweet fue publicado por: @{uname}", critical=True)
+									except api.NoUrlException:
+										conversations[index].notify(f"Uso: /expose <tweet_link>", critical=True)
 									except Tweet.DoesNotExist:
 										conversations[index].notify("El tweet no está registrado en la base de datos", critical=True)
 							else:
@@ -264,7 +280,8 @@ def associate(jsondata):
 															   \t\u2022 /timeout: Evita que un usuario pueda twittear durante un tiempo.
 															   \t\u2022 /free: Elimina el castigo de un usuario.
 															   \t\u2022 /list: Muestra los usuarios castigados.
-															   \t\u2022 /delete: Elimina un tweet publicado.""")
+															   \t\u2022 /delete: Elimina un tweet publicado.
+															   \t\u2022 /expose: Muestra el autor de un tweet.""")
 							else:
 								conversations[index].notify("Comandos disponibles:\n\t\u2022 /noti: Activa o desactiva las notificaciones de tus tweets")
 							return
@@ -275,7 +292,8 @@ def associate(jsondata):
 														   \t\u2022 /ban: Evita que un usuario pueda twittear.
 														   \t\u2022 /timeout: Evita que un usuario pueda twittear durante un tiempo.
 														   \t\u2022 /free: Elimina el castigo de un usuario.
-														   \t\u2022 /delete: Elimina un tweet publicado.""")
+														   \t\u2022 /delete: Elimina un tweet publicado.
+														   \t\u2022 /expose: Muestra el autor de un tweet.""")
 						else:
 							conversations[index].notify("Comandos disponibles:\n\t\u2022 /noti: Activa o desactiva las notificaciones de tus tweets.")
 				else:
