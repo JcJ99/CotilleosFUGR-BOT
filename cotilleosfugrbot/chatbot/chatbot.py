@@ -75,8 +75,8 @@ def knownuser(jsondata):
 			except Tweet.DoesNotExist:
 				return None
 		else:
-			tid = jsondata["tweet_create_events"][0]["retweeted_status"]["id_str"]
 			try:
+				tid = jsondata["tweet_create_events"][0]["retweeted_status"]["id_str"]
 				t_db = Tweet.objects.get(id=int(tid))
 				uid = t_db.user.id
 				if (str(uid) == api.selfid):
@@ -89,6 +89,8 @@ def knownuser(jsondata):
 				return len(conversations) - 1
 			except Tweet.DoesNotExist:
 				return None
+			except KeyError:
+				return -1
 	if typ == "del":
 		return None
 
@@ -104,7 +106,8 @@ def associate(jsondata):
 				conversations.append(conv.conversation(msg.sid()))
 				if msg.rawtext()[0] == "/":
 					conversations[len(conversations) - 1].notify("Debes publicar al menos un Tweet para acceder a los comandos", critical=True)
-				conversations[len(conversations) - 1].read(msg)
+				else:
+					conversations[len(conversations) - 1].read(msg)
 			else:
 				if msg.rawtext()[0] == "/":
 					command = msg.rawtext()[1::].split()
@@ -117,8 +120,25 @@ def associate(jsondata):
 								word = "DESACTIVADAS"
 							conversations[index].notify(f"Las notificaciones de la actividad de tus tweets están ahora {word}", critical=True)
 							return
+						
+						if command[0] == "delete":
+							try:
+								turl = msg.url()
+								tid = int(turl.split("/")[5])
+								t_db = Tweet.objects.get(id=tid)
+								if (conversations[index].user_id == str(t_db.user.id)) or (conversations[index].isadmin):
+									uname = api.getusername(t_db.user.id)[0]
+									conversations[index].notify(f"El tweet de @{uname} fue eliminado correctamente", critical=True)
+									api.tweet_delete(tid)
+								else:
+									conversations[index].notify("No tienes permisos para eliminar este tweet", critical=True)
+							except api.NoUrlException:
+								conversations[index].notify("Uso: /delete <tweet_link>", critical=True)
+							except Tweet.DoesNotExist:
+								conversations[index].notify("El tweet no está registrado en la base de datos", critical=True)
 
-						elif (command[0] in ["ban", "timeout", "list", "free", "delete", "expose"]):
+
+						elif (command[0] in ["ban", "timeout", "list", "free", "expose"]):
 							if conversations[index].isadmin:
 								if command[0] == "ban":
 									try:
@@ -244,19 +264,6 @@ def associate(jsondata):
 											conversations[index].notify(f"El usuario @{uname} no está castigado", critical=True)
 									except IndexError:
 										conversations[index].notify("Uso: /free <username>")
-								
-								if command[0] == "delete":
-									try:
-										turl = msg.url()
-										tid = int(turl.split("/")[5])
-										t_db = Tweet.objects.get(id=tid)
-										api.tweet_delete(tid)
-										uname = api.getusername(t_db.user.id)[0]
-										conversations[index].notify(f"El tweet de @{uname} fue eliminado correctamente", critical=True)
-									except api.NoUrlException:
-										conversations[index].notify("Uso: /delete <tweet_link>", critical=True)
-									except Tweet.DoesNotExist:
-										conversations[index].notify("El tweet no está registrado en la base de datos", critical=True)
 
 								if command[0] == "expose":
 									try:
@@ -283,7 +290,7 @@ def associate(jsondata):
 															   \t\u2022 /delete: Elimina un tweet publicado.
 															   \t\u2022 /expose: Muestra el autor de un tweet.""")
 							else:
-								conversations[index].notify("Comandos disponibles:\n\t\u2022 /noti: Activa o desactiva las notificaciones de tus tweets")
+								conversations[index].notify("Comandos disponibles:\n\t\u2022 /noti: Activa o desactiva las notificaciones de tus tweets.\n\t\u2022 /delete: Elimina un tweet publicado por tí.")
 							return
 					except IndexError:
 						if conversations[index].isadmin:
@@ -295,7 +302,7 @@ def associate(jsondata):
 														   \t\u2022 /delete: Elimina un tweet publicado.
 														   \t\u2022 /expose: Muestra el autor de un tweet.""")
 						else:
-							conversations[index].notify("Comandos disponibles:\n\t\u2022 /noti: Activa o desactiva las notificaciones de tus tweets.")
+							conversations[index].notify("Comandos disponibles:\n\t\u2022 /noti: Activa o desactiva las notificaciones de tus tweets.\n\t\u2022 /delete: Elimina un tweet publicado por tí.")
 				else:
 					conversations[index].read(msg)
 
