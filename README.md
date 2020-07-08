@@ -34,6 +34,14 @@ Es posible activar y desactivar las notificaciones de la actividad de los tweets
 /noti
 ```
 
+### Borrar un tweet
+
+Los usuarios pueden borrar sus propios tweets enviando un mensaje con el comando:
+
+```bash
+/delete <tweet_link>
+```
+
 ## Guía del administrador
 
 Hay disponibles una serie de comandos exclusivos de una serie de usuarios (de Twitter) que se designan como administradores. Estos permiten evitar comportamientos indeseados, dando a los administradores la posibilidad de evitar que un usuario twitee durante o tiempo o indefinidamente.
