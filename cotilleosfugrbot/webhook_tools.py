@@ -39,11 +39,11 @@ def show():
     except IndexError:
         print("No hay aplicaciones registradas")
 
-def put(print=True):
+def put(print_log=True):
     id = show()
     r = requests.put(f"https://api.twitter.com/1.1/account_activity/all/{TWITTER_ENV_NAME}/webhooks/{id}.json", auth=api.msgauth)
     check(r)
-    if print:
+    if print_log:
         print("Done!")
 
 
@@ -97,7 +97,8 @@ if __name__ == "__main__":
         "list": show,
         "put": put,
         "cleanmsg": cleanwelcomemsg,
-        "clean": clean
+        "clean": clean,
+        "setmsg": set_welcome_message
     }
     try:
         option = sys.argv[1]

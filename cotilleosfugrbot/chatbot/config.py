@@ -7,6 +7,7 @@ MAX_TWEETS_PER_HOUR = 5
 ADMIN_PASS = ""
 SPAM_NEGATIVE_LIMIT = -1
 SCORE_ZERO_ERROR = 0
+AUTO_REGISTER = 1
 
 if "APP_URL" in os.environ:
 	APP_URL = os.environ.get("APP_URL")
@@ -22,3 +23,5 @@ if "SPAM_NEGATIVE_LIMIT" in os.environ:
 	SPAM_NEGATIVE_LIMIT = os.environ.get("SPAM_NEGATIVE_LIMIT")
 if "SCORE_ZERO_ERROR" in os.environ:
 	SCORE_ZERO_ERROR = os.environ.get("SCORE_ZERO_ERROR")
+if "AUTO_REGISTER" in os.environ:
+	AUTO_REGISTER = os.environ.get("AUTO_REGISTER")

@@ -1,11 +1,14 @@
 from webhook_tools import put
 from apscheduler.schedulers.blocking import BlockingScheduler
+import os
 
 sched = BlockingScheduler()
 
-@sched.scheduled_job('interval', minutes=10)
+PUT_INTERVAL = os.environ.get("PUT_INTERVAL", 10)
+
+@sched.scheduled_job('interval', minutes=PUT_INTERVAL)
 def timed_job():
-    put(print=False)
+    put(print_log=False)
     print("Llamada a twitter para mantener el servidor activo")
 
 sched.start()
