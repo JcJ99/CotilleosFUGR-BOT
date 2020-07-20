@@ -1,8 +1,8 @@
 from webhook_tools import put
-from apscheduler.schedulers.blocking import BlockingScheduler
+from apscheduler.schedulers.background import BackgroundScheduler
 import os
 
-sched = BlockingScheduler()
+sched = BackgroundScheduler()
 
 PUT_INTERVAL = int(os.environ.get("PUT_INTERVAL", 10))
 
