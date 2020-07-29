@@ -29,7 +29,7 @@ if AUTO_REGISTER:
     logger.info("Mensaje de bienvenida establecido")
 
     def regfunc():
-        sleep(5)
+        sleep(10)
         id = register()
         logger.info(f"Aplicación registrada en Twitter con id: {id}")
 
