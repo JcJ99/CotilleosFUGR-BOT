@@ -8,10 +8,12 @@ from chatbot.welcomemsg import welcomemsgtext
 def check(request):
     try:
         request.raise_for_status()
+        return True
     except requests.HTTPError:
         code = request.json()["errors"][0]["code"]
         msg = request.json()["errors"][0]["message"]
         print(f"{code}: {msg}")
+        return False
 
 def register():
     r = requests.post(f"https://api.twitter.com/1.1/account_activity/all/{TWITTER_ENV_NAME}/webhooks.json", params={"url": APP_URL+"/webhook"}, auth=api.msgauth)
@@ -39,12 +41,14 @@ def show():
     except IndexError:
         print("No hay aplicaciones registradas")
 
-def put(print_log=True):
+def put(print_log=True, fail_register=False):
     id = show()
     r = requests.put(f"https://api.twitter.com/1.1/account_activity/all/{TWITTER_ENV_NAME}/webhooks/{id}.json", auth=api.msgauth)
-    check(r)
+    registered = check(r)
     if print_log:
         print("Done!")
+    if fail_register and not registered:
+        register()
 
 
 def cleanwelcomemsg():
