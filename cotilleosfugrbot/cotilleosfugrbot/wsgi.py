@@ -12,8 +12,9 @@ import threading
 import logging
 from time import sleep
 import atexit
-from webhook_tools import register, unregister, set_welcome_message, remove_welcome_message
+from webhook_tools import register, unregister, set_welcome_message, remove_welcome_message, put
 from chatbot.config import AUTO_REGISTER
+from apscheduler.schedulers.background import BackgroundScheduler
 
 from django.core.wsgi import get_wsgi_application
 
@@ -35,6 +36,20 @@ if AUTO_REGISTER:
 
     t = threading.Thread(target=regfunc)
     t.start()
+
+    # Scheduler
+
+    sched = BackgroundScheduler()
+
+    PUT_INTERVAL = int(os.environ.get("PUT_INTERVAL", 10))
+
+    @sched.scheduled_job('interval', minutes=PUT_INTERVAL)
+    def timed_job():
+        t = threading.Thread(target=put, kwargs={"print_log": False, "fail_register": True})
+        t.run()
+        print("Llamada a twitter para mantener el servidor activo")
+
+    sched.start()
 
     # Clean-up code
 
