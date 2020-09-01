@@ -76,6 +76,7 @@ def knownuser(jsondata):
 				return None
 		else:
 			try:
+				# Retweet
 				tid = jsondata["tweet_create_events"][0]["retweeted_status"]["id_str"]
 				t_db = Tweet.objects.get(id=int(tid))
 				uid = t_db.user.id
@@ -90,7 +91,26 @@ def knownuser(jsondata):
 			except Tweet.DoesNotExist:
 				return None
 			except KeyError:
-				return -1
+				try:
+					# Respuesta
+					replied_user_id = jsondata["tweet_create_events"][0]["in_reply_to_user_id"]
+					if replied_user_id == api.selfid:
+						tid = jsondata["tweet_create_events"][0]["in_reply_to_status_id"]
+						try:
+							t_db = Tweet.objects.get(id=tid)
+							uid = t_db.user.id
+							if (str(uid) == api.selfid):
+								return -1
+							for c in conversations:
+								if c.user_id == str(uid):
+									return index
+								index += 1
+							conversations.append(conv.conversation.from_model(t_db.user))
+							return len(conversations) - 1
+						except Tweet.DoesNotExist:
+							return None
+				except KeyError:
+					return -1
 	if typ == "del":
 		return None
 
