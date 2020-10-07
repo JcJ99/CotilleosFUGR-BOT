@@ -344,7 +344,7 @@ def associate(jsondata):
 					quote = jsondata["tweet_create_events"][0]
 					user = quote["user"]["screen_name"]
 					link = "https://twitter.com/" + api.selfscreenname + "/status/" + quote["id_str"]
-					text = "\U0001F504 @" + user + " ha citado tu tweet"
+					text = "\u21AA @" + user + " ha citado tu tweet"
 					conversations[index].notify(text, link)
 				elif typ == "reply":
 					reply = jsondata["tweet_create_events"][0]
