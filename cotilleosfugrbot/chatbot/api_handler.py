@@ -284,7 +284,7 @@ class msg:
 			}
 		}
 		r = requests.post("https://api.twitter.com/1.1/direct_messages/welcome_messages/new.json", auth=msgauth, json=data)
-		r.raise_for_status()
+		# r.raise_for_status()
 		self.welcomemessageid = r.json()["welcome_message"]["id"]
 		data = {
 			"welcome_message_rule": {
