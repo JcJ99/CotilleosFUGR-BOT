@@ -292,12 +292,8 @@ class msg:
 			}
 		}
 		r = requests.post("https://api.twitter.com/1.1/direct_messages/welcome_messages/rules/new.json", auth=msgauth, json=data)
-		try:
-			r.raise_for_status()
-		except requests.HTTPError:
-			logger.critical(r.text)
-			raise
-		self.ruleid = r.json()["welcome_message_rule"]["id"]
+		if r.status_code == requests.codes.ok:
+			self.ruleid = r.json()["welcome_message_rule"]["id"]
 
 class tweet:
 	def __init__(self, data):
